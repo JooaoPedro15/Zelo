@@ -2,6 +2,8 @@
 add_library(zelo_core STATIC
     core.cpp
     include/core/core.hpp
+    risk/protected_paths.cpp
+    include/core/risk/protected_paths.hpp
 )
 
 target_include_directories(zelo_core

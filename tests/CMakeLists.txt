@@ -2,6 +2,7 @@
 # do Qt no PATH ao rodar ctest.
 add_executable(zelo_tests
     smoke/modules_smoke_test.cpp
+    core/protected_paths_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE
