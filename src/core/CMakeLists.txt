@@ -9,6 +9,8 @@ add_library(zelo_core STATIC
     include/core/risk/risk_level.hpp
     confidence/confidence.cpp
     include/core/confidence/confidence.hpp
+    scoring/health_score.cpp
+    include/core/scoring/health_score.hpp
 )
 
 target_include_directories(zelo_core

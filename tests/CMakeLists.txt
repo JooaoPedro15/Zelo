@@ -5,6 +5,7 @@ add_executable(zelo_tests
     core/protected_paths_test.cpp
     core/risk_classifier_test.cpp
     core/confidence_test.cpp
+    core/health_score_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE
