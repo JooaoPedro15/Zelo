@@ -11,6 +11,8 @@ add_library(zelo_core STATIC
     include/core/confidence/confidence.hpp
     scoring/health_score.cpp
     include/core/scoring/health_score.hpp
+    models/recommendation.cpp
+    include/core/models/recommendation.hpp
 )
 
 target_include_directories(zelo_core

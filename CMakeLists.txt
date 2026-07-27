@@ -19,6 +19,10 @@ target_compile_options(zelo_warnings INTERFACE
     -Wextra
     -Wpedantic
     -Werror
+
+    # Os modelos usam designated initializers e todo campo tem valor padrao,
+    # entao omitir um campo e intencional e nunca deixa lixo na memoria.
+    -Wno-missing-field-initializers
 )
 
 # Runtime MinGW estático nos executáveis: a máquina tem um MinGW 6.3 antigo no PATH
