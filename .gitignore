@@ -1,0 +1,15 @@
+# Build
+build/
+.cache/
+
+# CMake local
+CMakeUserPresets.json
+
+# IDEs
+.vscode/
+.idea/
+*.user
+CMakeLists.txt.user*
+
+# Qt Creator
+*.autosave

@@ -133,15 +133,15 @@ Totalmente seguro, majoritariamente somente leitura. Classificação: **[MVP]**.
 
 ### Stack revisada (C++ — linguagem que o autor domina)
 
-- **C++20 (MSVC)** — acesso direto e natural às APIs do Windows: Win32, COM (WMI, WUA, Task Scheduler) e Event Log são APIs C/C++ nativas; elimina camadas de interop.
+- **C++20 (GCC 13.1 / MinGW-w64, toolchain oficial do Qt)** — acesso direto às APIs do Windows: Win32, COM (WMI, WUA, Task Scheduler) e Event Log são APIs C/C++ nativas. *Nota (2026-07-27)*: MSVC era a escolha original, descartado por restrição de disco (C: com <9 GB livres; Build Tools exigem ~7 GB no C:). Toolchain inteiro vive em `D:\Qt`. Migração futura para MSVC é barata — CMake isola o compilador.
 - **Qt 6 (Widgets)** — UI desktop madura em C++: visual profissional, signals/slots, empacotamento com `windeployqt`. LGPL ok para projeto open source. *Alternativa ultra-simples avaliada*: Dear ImGui (rápido de desenvolver, estética "utilitário") — decisão na seção 31 via spike.
-- **CMake + vcpkg** — build e dependências padrão de mercado (Qt via instalador oficial, ver seção 31).
+- **CMake + Ninja** — build via presets; dependências (nlohmann/json, spdlog, Catch2) via **FetchContent** com versões pinadas — sem vcpkg (menos uma ferramenta pra manter). Qt instalado via **aqtinstall** (binários oficiais, sem login, direto em `D:\Qt`).
 - **Persistência: arquivos JSON** (`nlohmann/json`) — **sem banco de dados**. Justificativa na seção 10.
 - **Logging: spdlog** — arquivo local rotativo.
 - **Testes: Catch2** (via ctest).
-- **`wil`** (Windows Implementation Library, Microsoft) — wrappers RAII para handles/COM, reduz verbosidade e vazamentos.
+- **Wrappers RAII próprios** para handles/COM (a lib `wil` da Microsoft foi descartada: suporte oficial só MSVC/Clang, e o toolchain é GCC). Camada fina, escrita uma vez em `collectors/`.
 
-Por que trocar C#/.NET: stack anterior era adequada, mas o autor domina C++ — produtividade real e código que ele consegue defender em entrevista valem mais em portfólio pessoal. Nenhuma API necessária é perdida. Custo: COM e strings mais verbosos em C++; mitigado com `wil` e wrappers próprios finos. Objetivo declarado: **simples mas bem funcional para uso diário** — por isso a estrutura abaixo também foi simplificada.
+Por que trocar C#/.NET: stack anterior era adequada, mas o autor domina C++ — produtividade real e código que ele consegue defender em entrevista valem mais em portfólio pessoal. Nenhuma API necessária é perdida. Custo: COM e strings mais verbosos em C++; mitigado com wrappers RAII próprios finos. Objetivo declarado: **simples mas bem funcional para uso diário** — por isso a estrutura abaixo também foi simplificada.
 
 ### Estrutura simplificada: um executável, módulos internos
 
@@ -171,10 +171,9 @@ Regras de análise: testáveis (puras, recebem dados coletados), explicáveis (t
 ```
 Cleaner/                          # repositório (nome do repo: zelo)
 ├── README.md                     # apresentação do projeto
-├── CMakeLists.txt                # raiz: subdiretórios, opções, /W4 /WX
-├── CMakePresets.json             # presets MSVC x64 (debug/release)
-├── vcpkg.json                    # nlohmann-json, spdlog, catch2, wil
-│                                 # (Qt 6 via instalador oficial + CMAKE_PREFIX_PATH — seção 31)
+├── CMakeLists.txt                # raiz: subdiretórios, warnings (-Wall -Wextra -Wpedantic -Werror)
+├── CMakePresets.json             # presets MinGW + Ninja (debug/release), caminhos em D:/Qt
+├── cmake/Dependencies.cmake      # FetchContent pinado: nlohmann-json, spdlog, catch2
 ├── docs/
 │   ├── PLANEJAMENTO.md           # este documento
 │   ├── arquitetura.md            # decisões de arquitetura (ADRs curtas)
@@ -215,7 +214,7 @@ Cleaner/                          # repositório (nome do repo: zelo)
 │   ├── commands/                 # allowlist, bloqueio de injeção, interpretação
 │   └── integration/              # coletores reais (label ctest: requires-windows)
 └── .github/
-    └── workflows/ci.yml          # build MSVC + ctest em windows-latest
+    └── workflows/ci.yml          # aqtinstall (Qt+MinGW+CMake+Ninja, com cache) + build + ctest
 ```
 
 ---
@@ -531,7 +530,7 @@ Critérios gerais para recomendar qualquer comando: evidência exigida presente;
 
 | # | Etapa | Conteúdo |
 |---|---|---|
-| 0 | Fundação | Repo, projeto CMake + vcpkg + Qt configurado, targets vazios por módulo, CI (build+ctest), docs iniciais, `.clang-format`; spike Qt Widgets × ImGui |
+| 0 | Fundação | Repo, projeto CMake + toolchain (aqtinstall: Qt 6.8 + MinGW 13.1 + CMake + Ninja em D:\Qt), targets vazios por módulo, CI (build+ctest), docs, `.clang-format` |
 | 1 | Domínio | Modelos, risco (+deny-list), confiança, score, primeiras regras — TDD puro, sem Windows |
 | 2 | Scanner | Engine + categorização + testes de robustez (junctions, longos, permissão, cancelamento) |
 | 3 | Coletores | Discos, programas, inicialização, eventos, atualizações, Defender, desempenho — todos read-only + testes de integração |
@@ -562,7 +561,7 @@ Ordem interna fixa: `core` antes de tudo; scanner antes da UI; UI por último (m
 
 ## 28. Riscos e limitações
 
-**Técnicos**: verbosidade de COM/WMI em C++ (mitigação: wrappers RAII com `wil` + camada fina própria, escrita uma vez); distribuição Qt pesa ~30–50 MB (aceitável para app desktop; ImGui reduziria drasticamente se o spike optar por ele); SMART/WMI inconsistente entre drivers (mitigação: sempre mostrar "o que não foi possível verificar"); WUA lento em algumas máquinas (mitigação: timeout + cache); volume de eventos enorme (mitigação: janelas de tempo + agrupamento); desempenho do scanner em HDD antigos (mitigação: paralelismo baixo + progresso honesto).
+**Técnicos**: verbosidade de COM/WMI em C++ (mitigação: wrappers RAII próprios, camada fina escrita uma vez); distribuição Qt pesa ~30–50 MB (aceitável para app desktop; ImGui reduziria drasticamente se o spike optar por ele); SMART/WMI inconsistente entre drivers (mitigação: sempre mostrar "o que não foi possível verificar"); WUA lento em algumas máquinas (mitigação: timeout + cache); volume de eventos enorme (mitigação: janelas de tempo + agrupamento); desempenho do scanner em HDD antigos (mitigação: paralelismo baixo + progresso honesto).
 
 **De segurança do próprio app**: broker elevado é a superfície mais sensível — allowlist duplicada e revalidada no broker, pipe com verificação de integridade do chamador, sem argumentos livres; quarentena pode acumular espaço (expiração + aviso); falso positivo de "programa não usado" (confiança multi-sinal + veto do usuário + linguagem sempre condicional).
 
@@ -589,8 +588,8 @@ Linha do tempo de saúde e comparação antes/depois [futura]; alertas de espaç
 
 1. ~~Nome final~~ — **decidido: Zelo** (2026-07-27).
 2. ~~Stack de linguagem~~ — **decidido: C++20** (2026-07-27; domínio do autor). ~~SQLite~~ — **decidido: JSON, sem banco** (2026-07-27).
-3. **UI: Qt Widgets × Dear ImGui** — spike de 1 dia na etapa 0: janela + lista + barra de progresso em cada um. Critério: velocidade de desenvolvimento × acabamento visual. Recomendação: Qt Widgets (o repositório de skills Qt do autor sugere familiaridade; visual muito superior para portfólio).
-4. **Qt via instalador oficial × vcpkg** — vcpkg compila Qt do zero (horas); instalador oficial + `CMAKE_PREFIX_PATH` é o caminho prático. Recomendação: instalador oficial.
+3. ~~UI~~ — **decidido: Qt 6 Widgets** (2026-07-27; instalado junto com o toolchain, visual superior para portfólio).
+4. ~~Qt via instalador × vcpkg~~ — **decidido: aqtinstall** (2026-07-27; binários oficiais, sem login, sem GUI, direto em `D:\Qt`). ~~Toolchain MSVC~~ — **decidido: MinGW 13.1 (GCC)** por restrição de espaço no C:; migração futura possível.
 5. **Treemap no MVP** — barras hierárquicas primeiro; treemap como custom widget depois.
 6. **Idioma da UI** — PT-BR primeiro; en-US via Qt Linguist (`ts`/`qm`) desde o início ou depois?
 7. **Apps MSIX/Store na listagem de programas** — registro cobre apps desktop; leitura de pacotes via C++/WinRT fica para v0.2?
@@ -603,7 +602,7 @@ Linha do tempo de saúde e comparação antes/depois [futura]; alertas de espaç
 
 ### 32.1 Estrutura inicial do repositório
 
-A da seção 8, com targets CMake vazios porém ligados entre si, mais: `README.md`, `docs/PLANEJAMENTO.md` (este), `.clang-format`, `.gitignore` (C++/CMake/Qt), `CMakePresets.json` (MSVC x64, `/W4 /WX`), `vcpkg.json`, `.github/workflows/ci.yml`.
+A da seção 8, com targets CMake vazios porém ligados entre si, mais: `README.md`, `docs/PLANEJAMENTO.md` (este), `.clang-format`, `.gitignore` (C++/CMake/Qt), `CMakePresets.json` (MinGW + Ninja, `-Wall -Wextra -Wpedantic -Werror`), `cmake/Dependencies.cmake`, `.github/workflows/ci.yml`.
 
 ### 32.2 Ordem exata das primeiras etapas
 

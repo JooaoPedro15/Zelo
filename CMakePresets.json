@@ -1,0 +1,51 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "mingw-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "D:/Qt/Tools/mingw1310_64/bin/g++.exe",
+                "CMAKE_MAKE_PROGRAM": "D:/Qt/Tools/Ninja/ninja.exe",
+                "CMAKE_PREFIX_PATH": "D:/Qt/6.8.3/mingw_64"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "MinGW Debug",
+            "inherits": "mingw-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "MinGW Release",
+            "inherits": "mingw-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}

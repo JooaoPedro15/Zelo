@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache Qt e toolchain
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: C:/Qt
+          key: qt-6.8.3-mingw1310-cmake-ninja-v1
+
+      - name: Instalar Qt 6.8.3 + MinGW 13.1 + CMake + Ninja
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          python -m pip install aqtinstall
+          python -m aqt install-qt windows desktop 6.8.3 win64_mingw -O C:/Qt --archives qtbase qttools
+          python -m aqt install-tool windows desktop tools_mingw1310 -O C:/Qt
+          python -m aqt install-tool windows desktop tools_cmake -O C:/Qt
+          python -m aqt install-tool windows desktop tools_ninja -O C:/Qt
+
+      - name: Configurar
+        shell: pwsh
+        run: >
+          C:/Qt/Tools/CMake_64/bin/cmake.exe -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=C:/Qt/Tools/mingw1310_64/bin/gcc.exe
+          -DCMAKE_CXX_COMPILER=C:/Qt/Tools/mingw1310_64/bin/g++.exe
+          -DCMAKE_MAKE_PROGRAM=C:/Qt/Tools/Ninja/ninja.exe
+          -DCMAKE_PREFIX_PATH=C:/Qt/6.8.3/mingw_64
+
+      - name: Compilar
+        shell: pwsh
+        run: C:/Qt/Tools/CMake_64/bin/cmake.exe --build build
+
+      - name: Testar
+        shell: pwsh
+        run: C:/Qt/Tools/CMake_64/bin/ctest.exe --test-dir build --output-on-failure
