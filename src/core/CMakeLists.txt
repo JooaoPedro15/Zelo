@@ -7,6 +7,8 @@ add_library(zelo_core STATIC
     risk/risk_classifier.cpp
     include/core/risk/risk_classifier.hpp
     include/core/risk/risk_level.hpp
+    confidence/confidence.cpp
+    include/core/confidence/confidence.hpp
 )
 
 target_include_directories(zelo_core
