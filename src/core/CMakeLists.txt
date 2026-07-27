@@ -13,6 +13,16 @@ add_library(zelo_core STATIC
     include/core/scoring/health_score.hpp
     models/recommendation.cpp
     include/core/models/recommendation.hpp
+    include/core/models/system_snapshot.hpp
+    include/core/rules/analysis_rule.hpp
+    rules/format.cpp
+    include/core/rules/format.hpp
+    rules/low_free_space_rule.cpp
+    include/core/rules/low_free_space_rule.hpp
+    rules/excessive_temporary_files_rule.cpp
+    include/core/rules/excessive_temporary_files_rule.hpp
+    rules/too_many_startup_items_rule.cpp
+    include/core/rules/too_many_startup_items_rule.hpp
 )
 
 target_include_directories(zelo_core
