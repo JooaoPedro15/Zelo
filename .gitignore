@@ -13,3 +13,6 @@ CMakeLists.txt.user*
 
 # Qt Creator
 *.autosave
+
+# aqtinstall
+aqtinstall.log
