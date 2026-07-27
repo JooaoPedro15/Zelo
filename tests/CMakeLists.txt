@@ -8,6 +8,8 @@ add_executable(zelo_tests
     core/health_score_test.cpp
     core/recommendation_test.cpp
     core/rules_test.cpp
+    scanner/temporary_tree.cpp
+    scanner/storage_scanner_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE

@@ -1,6 +1,8 @@
 add_library(zelo_scanner STATIC
     scanner.cpp
     include/scanner/scanner.hpp
+    storage_scanner.cpp
+    include/scanner/storage_scanner.hpp
 )
 
 target_include_directories(zelo_scanner
