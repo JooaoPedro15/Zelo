@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <core/risk/protected_paths.hpp>
 
+#include <stdexcept>
+
 using zelo::core::ProtectedPaths;
 
 TEST_CASE("caminho identico a uma raiz protegida e protegido", "[protected_paths]") {
@@ -73,4 +75,40 @@ TEST_CASE("caminho vazio e tratado como protegido", "[protected_paths]") {
     const ProtectedPaths paths{{"C:\\Windows"}};
 
     CHECK(paths.is_protected(""));
+}
+
+// Carve-out: o Windows guarda temporarios dentro de uma raiz protegida, e o
+// proprio Disk Cleanup limpa essa pasta. A excecao abre so ela, e o resto da
+// raiz continua fechado.
+TEST_CASE("excecao libera uma subpasta sem abrir a raiz protegida", "[protected_paths]") {
+    const ProtectedPaths paths{{"C:\\Windows"}, {"C:\\Windows\\Temp"}};
+
+    CHECK_FALSE(paths.is_protected("C:\\Windows\\Temp"));
+    CHECK_FALSE(paths.is_protected("C:\\Windows\\Temp\\instalador.tmp"));
+
+    CHECK(paths.is_protected("C:\\Windows"));
+    CHECK(paths.is_protected("C:\\Windows\\System32"));
+}
+
+// A excecao usa a mesma regra de limite das raizes: uma pasta que apenas
+// comeca com o mesmo texto nao entra no carve-out.
+TEST_CASE("pasta com prefixo parecido nao entra na excecao", "[protected_paths]") {
+    const ProtectedPaths paths{{"C:\\Windows"}, {"C:\\Windows\\Temp"}};
+
+    CHECK(paths.is_protected("C:\\Windows\\Temporario"));
+    CHECK(paths.is_protected("C:\\Windows\\TempAntigo\\arquivo.dat"));
+}
+
+TEST_CASE("nao da para sair da excecao com componente relativo", "[protected_paths]") {
+    const ProtectedPaths paths{{"C:\\Windows"}, {"C:\\Windows\\Temp"}};
+
+    CHECK(paths.is_protected("C:\\Windows\\Temp\\..\\System32"));
+}
+
+// Uma excecao igual a raiz — ou fora dela — desligaria a protecao inteira.
+// A lista e fixa no binario, entao falhar aqui trava o build, nunca o usuario.
+TEST_CASE("excecao que nao esta dentro de uma raiz e recusada", "[protected_paths]") {
+    CHECK_THROWS_AS(ProtectedPaths({"C:\\Windows"}, {"C:\\Windows"}), std::invalid_argument);
+    CHECK_THROWS_AS(ProtectedPaths({"C:\\Windows"}, {"C:\\"}), std::invalid_argument);
+    CHECK_THROWS_AS(ProtectedPaths({"C:\\Windows"}, {"D:\\Projetos"}), std::invalid_argument);
 }

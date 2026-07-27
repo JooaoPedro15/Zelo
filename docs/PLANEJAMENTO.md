@@ -69,7 +69,7 @@ Estas regras são invariantes: nenhuma versão futura pode violá-las.
 1. Nenhuma alteração sem autorização explícita do usuário na ação específica.
 2. Nenhum comando fora da allowlist interna revisada. Texto livre **nunca** vira comando.
 3. Comandos executados sem shell (`UseShellExecute=false`, sem `cmd /c`), com executável em caminho absoluto do sistema e argumentos validados individualmente.
-4. Diretórios protegidos (deny-list) jamais são alvo de limpeza/movimentação: `C:\Windows`, `System32`, `Program Files`, `Program Files (x86)`, `ProgramData`, raiz de `AppData`, raiz do perfil do usuário, raízes de unidade.
+4. Diretórios protegidos (deny-list) jamais são alvo de limpeza/movimentação: `C:\Windows`, `System32`, `Program Files`, `Program Files (x86)`, `ProgramData`, raiz de `AppData`, raiz do perfil do usuário, raízes de unidade. Exceções só existem como **carve-outs revisados e testados**, listados na seção 12; nenhuma pode abranger a própria raiz.
 5. Sem limpadores de Registro, sem "otimizações" sem evidência, sem formatação, sem partições, sem BIOS/firmware, sem download/execução de scripts, sem drivers de fontes não oficiais.
 6. Itens de risco vermelho: apenas explicados, nunca executados pelo app.
 7. Ausência de dados nunca vira certeza ("sem sinal de uso" ≠ "não é usado").
@@ -330,7 +330,18 @@ Classificação estática por catálogo, nunca calculada dinamicamente:
 - **Amarelo**: Downloads, arquivos grandes/antigos/duplicados, caches de programas profissionais, projetos, gravações, jogos, programas possivelmente não usados, desativar inicialização, limpeza de componentes, mover arquivos pessoais, reparos com possível reboot, chkdsk profundo, drivers.
 - **Vermelho**: componentes críticos, drivers, firmware/BIOS, arquivos de sistema não identificados, Registro, serviços essenciais, partições, pastas de programas, dados pessoais, bancos de dados de apps, formatação, boot. **Apenas explicado, nunca executado.**
 
-Qualquer caminho sob `ProtectedPaths` → automaticamente vermelho, sem exceção.
+Qualquer caminho sob `ProtectedPaths` → automaticamente vermelho, salvo os **carve-outs revisados** (abaixo).
+
+**Carve-outs** — subpastas dentro de uma raiz protegida que voltam a ser tratadas como normais, por serem locais que o próprio Windows limpa:
+
+| Carve-out | Justificativa | Situação |
+|---|---|---|
+| `%SystemRoot%\Temp` | Temporários do sistema; o Disk Cleanup limpa essa pasta | Decidido 2026-07-27 |
+| `%SystemRoot%\SoftwareDistribution\Download` | Cache de downloads do Windows Update | Candidato — não decidido |
+| `%SystemRoot%\Logs\CBS` | Logs de manutenção de componentes | Candidato — não decidido |
+| `%SystemRoot%\Minidump` | Despejos de memória de telas azuis | Candidato — não decidido |
+
+A lista é fixa no binário. Uma exceção precisa estar **estritamente dentro** de uma raiz protegida; se não estiver, o construtor lança `std::invalid_argument` — uma exceção igual à raiz (ou acima dela) desligaria a deny-list inteira, e o erro precisa aparecer no teste, nunca no computador do usuário. O carve-out usa a mesma regra de limite de componente das raízes, então `%SystemRoot%\Temporario` continua protegido, e sair da exceção com `..` também não funciona.
 
 ### Confiança (propriedade da CONCLUSÃO)
 
