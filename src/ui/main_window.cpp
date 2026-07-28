@@ -4,6 +4,9 @@
 
 #include <collectors/snapshot_collector.hpp>
 #include <storage/history_store.hpp>
+#include <storage/logging.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include <QApplication>
 #include <QDateTime>
@@ -112,8 +115,18 @@ void MainWindow::start_analysis() {
     summary_label_->setText(QStringLiteral("Lendo discos, inicializacao e temporarios..."));
     QApplication::processEvents();
 
+    spdlog::info("analise iniciada");
+
     const auto snapshot = collectors::collect_snapshot();
     result_ = core::QuickAnalysis::with_default_rules().run(snapshot);
+
+    // O que nao pode ser observado vira registro. Sem isso, uma coleta que
+    // falha silenciosamente e indistinguivel de uma que nao achou nada.
+    for (const auto& area : result_.unavailable) {
+        spdlog::warn("nao foi possivel analisar: {}", area);
+    }
+    spdlog::info("analise concluida: saude {}, {} achados", result_.health.overall(),
+                 result_.recommendations.size());
 
     show_result(result_);
 
@@ -127,6 +140,11 @@ void MainWindow::start_analysis() {
     const storage::HistoryStore history{storage::default_data_directory() / "history"};
     history.save(session);
     history.apply_retention(50);
+
+    if (const auto quarantined = history.quarantine_unreadable(); quarantined > 0) {
+        spdlog::warn("{} arquivos de historico ilegiveis foram postos de quarentena", quarantined);
+    }
+    spdlog::info("analise gravada em {}", session.id);
 
     analyze_button_->setEnabled(true);
     analyze_button_->setText(QStringLiteral("Analisar de novo"));

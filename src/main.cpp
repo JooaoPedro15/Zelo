@@ -1,4 +1,8 @@
+#include <storage/history_store.hpp>
+#include <storage/logging.hpp>
 #include <ui/main_window.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -22,6 +26,11 @@ int main(int argc, char* argv[]) {
         QStringLiteral("Ja abre executando a analise."));
     parser.addOption(analyze_on_start);
     parser.process(app);
+
+    const auto logs = zelo::storage::default_data_directory() / "logs";
+    zelo::storage::initialize_logging(logs);
+    zelo::storage::apply_log_retention(logs, 30);
+    spdlog::info("Zelo {} iniciado", QApplication::applicationVersion().toStdString());
 
     zelo::ui::MainWindow window;
     window.show();

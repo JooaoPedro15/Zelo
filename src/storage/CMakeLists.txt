@@ -5,6 +5,8 @@ add_library(zelo_storage STATIC
     include/storage/json_codec.hpp
     history_store.cpp
     include/storage/history_store.hpp
+    logging.cpp
+    include/storage/logging.hpp
 )
 
 target_include_directories(zelo_storage
@@ -17,5 +19,6 @@ target_link_libraries(zelo_storage
         zelo_core
         nlohmann_json::nlohmann_json
     PRIVATE
+        spdlog::spdlog
         zelo_warnings
 )

@@ -19,3 +19,10 @@ FetchContent_Declare(catch2
 )
 
 FetchContent_MakeAvailable(nlohmann_json spdlog catch2)
+
+# Caminhos de arquivo em wide. Sem isto o spdlog recebe o caminho como string
+# estreita, e um perfil com acento — "C:\Users\João" — vira lixo ao passar pelo
+# CRT, que le os bytes UTF-8 como ANSI.
+if(WIN32)
+    target_compile_definitions(spdlog PUBLIC SPDLOG_WCHAR_FILENAMES SPDLOG_WCHAR_TO_UTF8_SUPPORT)
+endif()
