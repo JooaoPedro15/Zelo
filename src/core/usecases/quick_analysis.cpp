@@ -2,6 +2,7 @@
 
 #include "core/rules/excessive_temporary_files_rule.hpp"
 #include "core/rules/low_free_space_rule.hpp"
+#include "core/rules/recurring_app_failures_rule.hpp"
 #include "core/rules/too_many_startup_items_rule.hpp"
 
 #include <utility>
@@ -90,6 +91,7 @@ QuickAnalysis QuickAnalysis::with_default_rules() {
         std::make_shared<const LowFreeSpaceRule>(),
         std::make_shared<const ExcessiveTemporaryFilesRule>(),
         std::make_shared<const TooManyStartupItemsRule>(),
+        std::make_shared<const RecurringAppFailuresRule>(),
     }};
 }
 
@@ -121,6 +123,9 @@ AnalysisResult QuickAnalysis::run(const SystemSnapshot& snapshot) const {
     }
     if (!snapshot.startup_available) {
         result.unavailable.emplace_back("programas de inicializacao");
+    }
+    if (!snapshot.stability.available) {
+        result.unavailable.emplace_back("falhas registradas pelo Windows");
     }
 
     result.health = HealthScore::from_deductions(std::move(deductions));

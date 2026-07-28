@@ -25,6 +25,8 @@ SystemSnapshot healthy_snapshot() {
 
     snapshot.temporary_files = {.available = true, .total_bytes = 0, .file_count = 0};
     snapshot.startup_available = true;
+    snapshot.stability.available = true;
+    snapshot.stability.window_days = 30;
 
     return snapshot;
 }
@@ -92,5 +94,8 @@ TEST_CASE("o que nao pode ser observado e declarado", "[quick_analysis]") {
 
     CHECK(result.recommendations.empty());
     CHECK(result.health.overall() == 100);
-    CHECK(result.unavailable.size() == 3);
+
+    // Volumes, temporarios, inicializacao e falhas registradas: quatro areas,
+    // todas declaradas como nao observadas.
+    CHECK(result.unavailable.size() == 4);
 }

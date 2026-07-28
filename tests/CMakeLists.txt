@@ -13,6 +13,8 @@ add_executable(zelo_tests
     collectors/volume_collector_test.cpp
     collectors/startup_collector_test.cpp
     collectors/real_analysis_test.cpp
+    collectors/event_log_parsing_test.cpp
+    collectors/stability_collector_test.cpp
     storage/json_codec_test.cpp
     storage/history_store_test.cpp
     storage/logging_test.cpp

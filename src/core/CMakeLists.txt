@@ -23,6 +23,8 @@ add_library(zelo_core STATIC
     include/core/rules/excessive_temporary_files_rule.hpp
     rules/too_many_startup_items_rule.cpp
     include/core/rules/too_many_startup_items_rule.hpp
+    rules/recurring_app_failures_rule.cpp
+    include/core/rules/recurring_app_failures_rule.hpp
     usecases/quick_analysis.cpp
     include/core/usecases/quick_analysis.hpp
 )

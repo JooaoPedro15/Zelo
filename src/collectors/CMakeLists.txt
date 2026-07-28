@@ -11,6 +11,10 @@ add_library(zelo_collectors STATIC
     include/collectors/temporary_files_collector.hpp
     snapshot_collector.cpp
     include/collectors/snapshot_collector.hpp
+    stability_collector.cpp
+    include/collectors/stability_collector.hpp
+    event_log_parsing.cpp
+    include/collectors/event_log_parsing.hpp
     detail/text.cpp
     include/collectors/detail/text.hpp
 )
@@ -25,5 +29,7 @@ target_link_libraries(zelo_collectors
         zelo_core
     PRIVATE
         zelo_scanner
+        wevtapi
+        spdlog::spdlog
         zelo_warnings
 )
