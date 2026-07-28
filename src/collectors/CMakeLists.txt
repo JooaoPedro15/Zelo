@@ -3,6 +3,12 @@ add_library(zelo_collectors STATIC
     include/collectors/collectors.hpp
     system_paths.cpp
     include/collectors/system_paths.hpp
+    volume_collector.cpp
+    include/collectors/volume_collector.hpp
+    startup_collector.cpp
+    include/collectors/startup_collector.hpp
+    detail/text.cpp
+    include/collectors/detail/text.hpp
 )
 
 target_include_directories(zelo_collectors

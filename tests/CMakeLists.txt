@@ -11,6 +11,8 @@ add_executable(zelo_tests
     scanner/temporary_tree.cpp
     scanner/storage_scanner_test.cpp
     collectors/system_paths_test.cpp
+    collectors/volume_collector_test.cpp
+    collectors/startup_collector_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE
