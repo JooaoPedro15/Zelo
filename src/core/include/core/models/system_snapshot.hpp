@@ -99,6 +99,25 @@ struct MemoryInfo {
     }
 };
 
+struct SecurityInfo {
+    bool available = false;
+
+    bool antivirus_enabled = false;
+    bool realtime_protection_enabled = false;
+
+    /// Idade das definicoes, em dias. Definicao velha nao significa desprotegido,
+    /// mas significa protegido contra ameacas de semanas atras.
+    int signature_age_days = -1;
+
+    /// Dias desde a ultima verificacao rapida. Negativo quando o Windows nao
+    /// informa — em maquina recem-instalada, por exemplo.
+    int last_quick_scan_age_days = -1;
+
+    /// Nome do antivirus em uso, quando nao for o do proprio Windows. O Zelo nao
+    /// substitui antivirus e nao opina sobre qual usar.
+    std::string provider;
+};
+
 struct SystemSnapshot {
     bool volumes_available = false;
     std::vector<VolumeInfo> volumes;
@@ -110,6 +129,7 @@ struct SystemSnapshot {
     StabilityInfo stability;
     UpdatesInfo updates;
     MemoryInfo memory;
+    SecurityInfo security;
 };
 
 }

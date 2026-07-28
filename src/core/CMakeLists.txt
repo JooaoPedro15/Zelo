@@ -29,6 +29,8 @@ add_library(zelo_core STATIC
     include/core/rules/pending_reboot_rule.hpp
     rules/low_memory_rule.cpp
     include/core/rules/low_memory_rule.hpp
+    rules/weak_protection_rule.cpp
+    include/core/rules/weak_protection_rule.hpp
     usecases/quick_analysis.cpp
     include/core/usecases/quick_analysis.hpp
 )

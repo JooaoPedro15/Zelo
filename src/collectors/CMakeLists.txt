@@ -17,6 +17,10 @@ add_library(zelo_collectors STATIC
     include/collectors/update_collector.hpp
     memory_collector.cpp
     include/collectors/memory_collector.hpp
+    detail/wmi.cpp
+    include/collectors/detail/wmi.hpp
+    security_collector.cpp
+    include/collectors/security_collector.hpp
     event_log_parsing.cpp
     include/collectors/event_log_parsing.hpp
     detail/text.cpp
@@ -34,6 +38,9 @@ target_link_libraries(zelo_collectors
     PRIVATE
         zelo_scanner
         wevtapi
+        wbemuuid
+        ole32
+        oleaut32
         spdlog::spdlog
         zelo_warnings
 )

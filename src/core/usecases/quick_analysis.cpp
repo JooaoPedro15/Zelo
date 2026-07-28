@@ -6,6 +6,7 @@
 #include "core/rules/pending_reboot_rule.hpp"
 #include "core/rules/recurring_app_failures_rule.hpp"
 #include "core/rules/too_many_startup_items_rule.hpp"
+#include "core/rules/weak_protection_rule.hpp"
 
 #include <utility>
 
@@ -41,6 +42,7 @@ QuickAnalysis QuickAnalysis::with_default_rules() {
         std::make_shared<const RecurringAppFailuresRule>(),
         std::make_shared<const PendingRebootRule>(),
         std::make_shared<const LowMemoryRule>(),
+        std::make_shared<const WeakProtectionRule>(),
     }};
 }
 
@@ -81,6 +83,9 @@ AnalysisResult QuickAnalysis::run(const SystemSnapshot& snapshot) const {
     }
     if (!snapshot.memory.available) {
         result.unavailable.emplace_back("memoria do sistema");
+    }
+    if (!snapshot.security.available) {
+        result.unavailable.emplace_back("protecao do Windows");
     }
 
     result.health = HealthScore::from_deductions(std::move(deductions));

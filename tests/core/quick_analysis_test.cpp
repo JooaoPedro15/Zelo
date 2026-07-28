@@ -33,6 +33,12 @@ SystemSnapshot healthy_snapshot() {
                        .total_bytes = 16 * kGigabyte,
                        .available_bytes = 8 * kGigabyte,
                        .load_percent = 50};
+    snapshot.security = {.available = true,
+                         .antivirus_enabled = true,
+                         .realtime_protection_enabled = true,
+                         .signature_age_days = 1,
+                         .last_quick_scan_age_days = 2,
+                         .provider = "Seguranca do Windows"};
 
     return snapshot;
 }
@@ -101,7 +107,6 @@ TEST_CASE("o que nao pode ser observado e declarado", "[quick_analysis]") {
     CHECK(result.recommendations.empty());
     CHECK(result.health.overall() == 100);
 
-    // Volumes, temporarios, inicializacao, falhas registradas, atualizacoes e
-    // memoria: seis areas, todas declaradas como nao observadas.
-    CHECK(result.unavailable.size() == 6);
+    // Sete areas observaveis, todas declaradas como nao observadas.
+    CHECK(result.unavailable.size() == 7);
 }
