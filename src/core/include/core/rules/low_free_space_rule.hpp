@@ -13,6 +13,10 @@ public:
     /// Windows comeca a ter dificuldade com arquivos temporarios e atualizacoes.
     static constexpr double kLowFreeRatio = 0.10;
 
+    /// Abaixo disto o problema deixa de ser folga apertada e passa a atrapalhar
+    /// o funcionamento: atualizacao falha, programa nao salva, o sistema trava.
+    static constexpr double kCriticalFreeRatio = 0.05;
+
     [[nodiscard]] std::string id() const override;
     [[nodiscard]] int version() const override;
 

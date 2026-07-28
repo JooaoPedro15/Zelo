@@ -38,28 +38,33 @@ TEST_CASE("categoria nao fica abaixo de zero", "[health_score]") {
     CHECK(score.of(HealthCategory::Storage) == 0);
 }
 
-// Os pesos da secao 13 do planejamento ficam fixados aqui: mudar a importancia
-// de uma categoria exige mudar este teste, e portanto ser decisao consciente.
-TEST_CASE("pontuacao geral e media ponderada das categorias", "[health_score]") {
-    SECTION("armazenamento pesa 15 por cento") {
+// A pontuacao geral mistura media ponderada com a pior categoria, meio a meio.
+// So a media diluia qualquer problema isolado: com oito categorias e peso
+// maximo de 15 por cento, nem zerar uma delas movia o geral o suficiente para
+// o usuario agir. Os pesos ficam fixados aqui — mudar a importancia de uma
+// categoria exige mudar este teste, e portanto ser decisao consciente.
+TEST_CASE("pontuacao geral acompanha a pior categoria", "[health_score]") {
+    SECTION("um problema grave sozinho ja derruba o geral") {
+        // Media ponderada daria 94, que esconderia o problema.
         const HealthScore score =
             HealthScore::from_deductions({{HealthCategory::Storage, 40, "disco C: quase cheio"}});
 
-        CHECK(score.overall() == 94);
+        CHECK(score.overall() == 77);
     }
 
-    SECTION("inicializacao pesa 5 por cento") {
+    SECTION("o peso da categoria continua valendo") {
+        // Mesmo desconto numa categoria de peso menor incomoda menos o geral.
         const HealthScore score = HealthScore::from_deductions(
             {{HealthCategory::Startup, 40, "muitos programas na inicializacao"}});
 
-        CHECK(score.overall() == 98);
+        CHECK(score.overall() == 79);
     }
 
     SECTION("categoria zerada nao zera o geral") {
         const HealthScore score =
             HealthScore::from_deductions({{HealthCategory::Storage, 100, "disco C: sem espaco"}});
 
-        CHECK(score.overall() == 85);
+        CHECK(score.overall() == 43);
     }
 
     // Se os pesos nao somassem 1.0, zerar tudo daria um numero diferente de

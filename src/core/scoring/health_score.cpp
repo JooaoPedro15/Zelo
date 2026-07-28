@@ -38,10 +38,22 @@ constexpr std::array kWeights{
 
 int HealthScore::overall() const {
     double weighted = 0.0;
+    int worst = kMaximumScore;
+
     for (const auto& entry : kWeights) {
-        weighted += entry.weight * of(entry.category);
+        const int score = of(entry.category);
+        weighted += entry.weight * score;
+        worst = std::min(worst, score);
     }
-    return static_cast<int>(std::lround(weighted));
+
+    // Metade media ponderada, metade pior categoria.
+    //
+    // So a media diluia qualquer problema isolado: com oito categorias e peso
+    // maximo de 15 por cento, um disco praticamente cheio movia o geral em
+    // menos de dois pontos, e o numero dizia "esta tudo bem" enquanto havia um
+    // problema real. Trazer a pior categoria para a conta faz a pontuacao
+    // acompanhar o pior achado sem ignorar o resto.
+    return static_cast<int>(std::lround(weighted * 0.5 + worst * 0.5));
 }
 
 int HealthScore::of(HealthCategory category) const {

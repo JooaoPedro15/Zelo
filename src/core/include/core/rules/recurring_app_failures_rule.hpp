@@ -20,6 +20,10 @@ public:
     /// nao para despejar tudo que o log tem.
     static constexpr std::size_t kMaximumReported = 5;
 
+    /// Um programa que falha dez vezes no periodo nao esta com azar: ha algo
+    /// consistentemente errado.
+    static constexpr std::size_t kSevereFailures = 10;
+
     [[nodiscard]] std::string id() const override;
     [[nodiscard]] int version() const override;
 

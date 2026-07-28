@@ -45,6 +45,21 @@ TEST_CASE("disco de sistema com pouco espaco livre gera recomendacao", "[rules]"
     CHECK(validate(recommendation).empty());
 }
 
+// A gravidade acompanha o quanto o problema e grande. Tratar 9% e 2% livres
+// como a mesma coisa faria a pontuacao dizer o mesmo em situacoes muito
+// diferentes.
+TEST_CASE("a gravidade cresce conforme o disco enche", "[rules]") {
+    const LowFreeSpaceRule rule;
+
+    const auto tight = rule.evaluate(snapshot_with_system_volume(500, 45));
+    REQUIRE(tight.size() == 1);
+    CHECK(tight.front().severity == zelo::core::Severity::Attention);
+
+    const auto critical = rule.evaluate(snapshot_with_system_volume(500, 10));
+    REQUIRE(critical.size() == 1);
+    CHECK(critical.front().severity == zelo::core::Severity::Serious);
+}
+
 TEST_CASE("disco com espaco folgado nao gera recomendacao", "[rules]") {
     const LowFreeSpaceRule rule;
 
@@ -155,6 +170,18 @@ TEST_CASE("itens essenciais ficam fora da contagem e da sugestao", "[rules]") {
             CHECK(path.find("av") == std::string::npos);
         }
     }
+}
+
+TEST_CASE("a gravidade da inicializacao cresce com o excesso", "[rules]") {
+    const TooManyStartupItemsRule rule;
+
+    const auto some = rule.evaluate(snapshot_with_startup(7, 0));
+    REQUIRE(some.size() == 1);
+    CHECK(some.front().severity == zelo::core::Severity::Attention);
+
+    const auto many = rule.evaluate(snapshot_with_startup(30, 0));
+    REQUIRE(many.size() == 1);
+    CHECK(many.front().severity == zelo::core::Severity::Serious);
 }
 
 TEST_CASE("sem dados de inicializacao a regra nao conclui nada", "[rules]") {

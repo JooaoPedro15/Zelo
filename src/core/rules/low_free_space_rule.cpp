@@ -42,7 +42,7 @@ std::vector<Recommendation> LowFreeSpaceRule::evaluate(const SystemSnapshot& sna
                            ". Com menos de 10% livres o Windows costuma ter dificuldade para "
                            "aplicar atualizacoes e para trabalhar com arquivos temporarios.",
             .category = ActionCategory::ReadOnlyAnalysis,
-            .severity = Severity::Attention,
+            .severity = free_ratio < kCriticalFreeRatio ? Severity::Serious : Severity::Attention,
             .risk = RiskLevel::Green,
             .confidence = Confidence::from_signals(
                 {{"espaco livre medido diretamente no volume", 0.95}}),

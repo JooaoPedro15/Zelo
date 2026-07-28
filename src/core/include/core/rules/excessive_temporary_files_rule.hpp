@@ -15,6 +15,10 @@ public:
     /// recomendacao existe para liberar espaco relevante, nao para caçar migalhas.
     static constexpr std::uint64_t kMinimumBytes = 1024ULL * 1024ULL * 1024ULL;
 
+    /// A partir deste volume o acumulo deixa de ser detalhe e vira uma parcela
+    /// relevante do disco de quem esta sem espaco.
+    static constexpr std::uint64_t kLargeBytes = 10ULL * kMinimumBytes;
+
     [[nodiscard]] std::string id() const override;
     [[nodiscard]] int version() const override;
 

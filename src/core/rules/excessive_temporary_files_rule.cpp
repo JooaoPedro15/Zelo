@@ -30,7 +30,7 @@ std::vector<Recommendation> ExcessiveTemporaryFilesRule::evaluate(const SystemSn
                        size_text +
                        ". Sao arquivos que o sistema e os programas recriam quando precisam.",
         .category = ActionCategory::KnownTemporaryFile,
-        .severity = Severity::Info,
+        .severity = temporary_files.total_bytes >= kLargeBytes ? Severity::Attention : Severity::Info,
         .risk = RiskLevel::Green,
         .confidence = Confidence::from_signals(
             {{"arquivos encontrados em pastas de temporarios conhecidas", 0.9}}),

@@ -18,6 +18,11 @@ public:
     /// tempo de boot costuma ficar perceptivelmente pior.
     static constexpr std::size_t kAcceptableCount = 5;
 
+    /// A partir daqui a inicializacao deixa de ser so mais lenta e passa a
+    /// disputar disco e memoria a ponto de o computador demorar para responder
+    /// depois de ligar.
+    static constexpr std::size_t kSevereCount = 15;
+
     [[nodiscard]] std::string id() const override;
     [[nodiscard]] int version() const override;
 
