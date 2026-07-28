@@ -107,6 +107,36 @@ TEST_CASE("nao da para sair da excecao com componente relativo", "[protected_pat
 
 // Uma excecao igual a raiz — ou fora dela — desligaria a protecao inteira.
 // A lista e fixa no binario, entao falhar aqui trava o build, nunca o usuario.
+// Alguns caminhos precisam ser protegidos so neles mesmos. A raiz de unidade e
+// a pasta do perfil nao podem ser alvo de limpeza, mas o conteudo dentro delas
+// e justamente o que o aplicativo existe para analisar.
+TEST_CASE("caminho exato protege a pasta sem fechar o conteudo", "[protected_paths]") {
+    const ProtectedPaths paths{
+        {.subtree_roots = {"C:\\Windows"}, .exact_paths = {"C:\\", "C:\\Users\\Joao"}}};
+
+    CHECK(paths.is_protected("C:\\"));
+    CHECK(paths.is_protected("C:\\Users\\Joao"));
+
+    CHECK_FALSE(paths.is_protected("C:\\Users\\Joao\\Downloads\\instalador.exe"));
+    CHECK_FALSE(paths.is_protected("C:\\Projetos"));
+
+    CHECK(paths.is_protected("C:\\Windows\\System32"));
+}
+
+// As APIs do Windows devolvem caminho em caixa variada — GetWindowsDirectoryW
+// responde "C:\WINDOWS" em maiusculas. Se a dobra parasse no ASCII, um perfil
+// como "C:\Users\João" nao casaria com "C:\USERS\JOÃO" e ficaria desprotegido.
+TEST_CASE("dobra de caixa cobre letras acentuadas", "[protected_paths]") {
+    const ProtectedPaths paths{
+        {.subtree_roots = {"C:\\Arquivos\\Programação"}, .exact_paths = {"C:\\Users\\João"}}};
+
+    CHECK(paths.is_protected("C:\\USERS\\JOÃO"));
+    CHECK(paths.is_protected("c:\\users\\joão"));
+
+    CHECK(paths.is_protected("C:\\ARQUIVOS\\PROGRAMAÇÃO\\projeto"));
+    CHECK(paths.is_protected("c:\\arquivos\\programação\\projeto"));
+}
+
 TEST_CASE("excecao que nao esta dentro de uma raiz e recusada", "[protected_paths]") {
     CHECK_THROWS_AS(ProtectedPaths({"C:\\Windows"}, {"C:\\Windows"}), std::invalid_argument);
     CHECK_THROWS_AS(ProtectedPaths({"C:\\Windows"}, {"C:\\"}), std::invalid_argument);

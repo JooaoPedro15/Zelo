@@ -9,16 +9,44 @@ namespace zelo::core {
 
 namespace {
 
-// Dobra de caixa apenas ASCII: basta para as raizes protegidas do Windows,
-// que sao todas ASCII (Windows, System32, Program Files, ProgramData).
+/// Deixa o caminho comparavel: separador unico e caixa dobrada.
+///
+/// As APIs do Windows devolvem caixa variada — `GetWindowsDirectoryW` responde
+/// "C:\WINDOWS". Parar no ASCII deixaria um perfil como "C:\Users\João" sem
+/// casar com "C:\USERS\JOÃO", e o caminho ficaria desprotegido.
+///
+/// Cobre ASCII e o bloco Latin-1 (À-Þ), suficiente para portugues, espanhol,
+/// frances e alemao. Nao cobre Latin Extended (polones, tcheco, turco), grego
+/// nem cirilico: um caminho nessas escritas so casa se a caixa for igual.
 std::string normalize(std::string_view text) {
+    constexpr unsigned char kLatin1Lead = 0xC3;
+    constexpr unsigned char kMultiplicationSign = 0x97;
+    constexpr unsigned char kCaseBit = 0x20;
+
     std::string result(text);
-    for (char& character : result) {
-        if (character == '/') {
-            character = '\\';
+    for (std::size_t index = 0; index < result.size(); ++index) {
+        const auto byte = static_cast<unsigned char>(result[index]);
+
+        if (byte == '/') {
+            result[index] = '\\';
             continue;
         }
-        character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+
+        if (byte < 0x80) {
+            result[index] = static_cast<char>(std::tolower(byte));
+            continue;
+        }
+
+        // Em UTF-8 as maiusculas acentuadas do Latin-1 vao de C3 80 a C3 9E, e
+        // as minusculas correspondentes de C3 A0 a C3 BE: a diferenca e um bit.
+        // O sinal de multiplicacao (C3 97) mora no meio da faixa e nao tem par.
+        if (byte == kLatin1Lead && index + 1 < result.size()) {
+            const auto next = static_cast<unsigned char>(result[index + 1]);
+            if (next >= 0x80 && next <= 0x9E && next != kMultiplicationSign) {
+                result[index + 1] = static_cast<char>(next | kCaseBit);
+            }
+            ++index;
+        }
     }
     return result;
 }
@@ -78,10 +106,16 @@ std::vector<std::string> canonicalize_all(const std::vector<std::string>& values
 }
 
 ProtectedPaths::ProtectedPaths(std::vector<std::string> roots, std::vector<std::string> exceptions)
-    : roots_(canonicalize_all(roots)), exceptions_(canonicalize_all(exceptions)) {
+    : ProtectedPaths(ProtectedPathsSpec{.subtree_roots = std::move(roots),
+                                        .exceptions = std::move(exceptions)}) {}
+
+ProtectedPaths::ProtectedPaths(ProtectedPathsSpec spec)
+    : subtree_roots_(canonicalize_all(spec.subtree_roots)),
+      exact_paths_(canonicalize_all(spec.exact_paths)),
+      exceptions_(canonicalize_all(spec.exceptions)) {
     for (const auto& exception : exceptions_) {
         const bool carves_out_a_root = std::any_of(
-            roots_.begin(), roots_.end(),
+            subtree_roots_.begin(), subtree_roots_.end(),
             [&exception](const std::string& root) { return is_strictly_under(exception, root); });
 
         // Uma excecao igual a uma raiz (ou acima dela) desligaria a protecao
@@ -100,13 +134,21 @@ bool ProtectedPaths::is_protected(std::string_view path) const {
         return true;
     }
 
+    // Caminho exato vem antes do carve-out: proteger a propria pasta e uma
+    // afirmacao sobre ela, nao sobre o que ha dentro.
+    for (const auto& exact : exact_paths_) {
+        if (candidate == exact) {
+            return true;
+        }
+    }
+
     for (const auto& exception : exceptions_) {
         if (is_at_or_under(candidate, exception)) {
             return false;
         }
     }
 
-    for (const auto& root : roots_) {
+    for (const auto& root : subtree_roots_) {
         if (is_at_or_under(candidate, root)) {
             return true;
         }

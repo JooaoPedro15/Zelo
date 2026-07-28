@@ -10,6 +10,7 @@ add_executable(zelo_tests
     core/rules_test.cpp
     scanner/temporary_tree.cpp
     scanner/storage_scanner_test.cpp
+    collectors/system_paths_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE
