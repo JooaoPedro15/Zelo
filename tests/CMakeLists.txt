@@ -1,5 +1,3 @@
-# Testes não linkam zelo_ui de propósito: mantê-los sem Qt evita depender das DLLs
-# do Qt no PATH ao rodar ctest.
 add_executable(zelo_tests
     smoke/modules_smoke_test.cpp
     core/protected_paths_test.cpp
@@ -17,6 +15,7 @@ add_executable(zelo_tests
     collectors/real_analysis_test.cpp
     storage/json_codec_test.cpp
     storage/history_store_test.cpp
+    ui/presentation_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE
@@ -25,6 +24,7 @@ target_link_libraries(zelo_tests PRIVATE
     zelo_scanner
     zelo_commands
     zelo_storage
+    zelo_ui
     zelo_warnings
     zelo_static_runtime
     Catch2::Catch2WithMain
@@ -32,4 +32,9 @@ target_link_libraries(zelo_tests PRIVATE
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
-catch_discover_tests(zelo_tests)
+
+# Os testes de apresentação usam QString e QColor, então o binário carrega as
+# DLLs do Qt. DL_PATHS as coloca no PATH tanto na descoberta quanto na execução.
+catch_discover_tests(zelo_tests
+    DL_PATHS "$<TARGET_FILE_DIR:Qt6::Core>"
+)

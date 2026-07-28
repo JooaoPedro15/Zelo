@@ -11,7 +11,6 @@ qt_add_executable(zelo WIN32
 
 target_link_libraries(zelo PRIVATE
     Qt6::Widgets
-    zelo_core
     zelo_ui
     zelo_warnings
     zelo_static_runtime
