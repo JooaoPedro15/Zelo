@@ -23,6 +23,11 @@ public:
 
     static Confidence from_signals(std::vector<ConfidenceSignal> signals);
 
+    /// Reconstroi uma confianca ja calculada, para leitura de historico. Nao
+    /// recalcula nada: os sinais originais nao sao guardados, apenas o
+    /// resultado e os motivos que foram mostrados ao usuario na epoca.
+    static Confidence restored(double value, std::vector<std::string> reasons);
+
     [[nodiscard]] double value() const;
 
     /// Somente os sinais que pontuaram, na ordem em que foram informados.

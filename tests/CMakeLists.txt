@@ -15,6 +15,8 @@ add_executable(zelo_tests
     collectors/volume_collector_test.cpp
     collectors/startup_collector_test.cpp
     collectors/real_analysis_test.cpp
+    storage/json_codec_test.cpp
+    storage/history_store_test.cpp
 )
 
 target_link_libraries(zelo_tests PRIVATE
