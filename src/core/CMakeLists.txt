@@ -31,6 +31,8 @@ add_library(zelo_core STATIC
     include/core/rules/low_memory_rule.hpp
     rules/weak_protection_rule.cpp
     include/core/rules/weak_protection_rule.hpp
+    rules/disk_health_rule.cpp
+    include/core/rules/disk_health_rule.hpp
     usecases/quick_analysis.cpp
     include/core/usecases/quick_analysis.hpp
 )

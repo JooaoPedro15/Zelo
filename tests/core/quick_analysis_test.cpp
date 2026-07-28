@@ -39,6 +39,11 @@ SystemSnapshot healthy_snapshot() {
                          .signature_age_days = 1,
                          .last_quick_scan_age_days = 2,
                          .provider = "Seguranca do Windows"};
+    snapshot.disks = {.available = true,
+                      .disks = {{.model = "Disco de teste",
+                                 .media_type = "SSD",
+                                 .size_bytes = 500 * kGigabyte,
+                                 .health_status = "Healthy"}}};
 
     return snapshot;
 }
@@ -107,6 +112,6 @@ TEST_CASE("o que nao pode ser observado e declarado", "[quick_analysis]") {
     CHECK(result.recommendations.empty());
     CHECK(result.health.overall() == 100);
 
-    // Sete areas observaveis, todas declaradas como nao observadas.
-    CHECK(result.unavailable.size() == 7);
+    // Oito areas observaveis, todas declaradas como nao observadas.
+    CHECK(result.unavailable.size() == 8);
 }

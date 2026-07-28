@@ -1,6 +1,7 @@
 #include "collectors/snapshot_collector.hpp"
 
 #include "collectors/stability_collector.hpp"
+#include "collectors/disk_collector.hpp"
 #include "collectors/memory_collector.hpp"
 #include "collectors/security_collector.hpp"
 #include "collectors/stability_collector.hpp"
@@ -21,6 +22,7 @@ core::SystemSnapshot collect_snapshot(std::stop_token token) {
     UpdateCollector{}.collect_into(snapshot);
     MemoryCollector{}.collect_into(snapshot);
     SecurityCollector{}.collect_into(snapshot);
+    DiskCollector{}.collect_into(snapshot);
 
     const TemporaryFilesCollector temporary_files{build_protected_paths(collect_system_paths())};
     temporary_files.collect_into(snapshot, token);

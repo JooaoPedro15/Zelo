@@ -118,6 +118,32 @@ struct SecurityInfo {
     std::string provider;
 };
 
+struct PhysicalDiskInfo {
+    std::string model;
+
+    /// SSD, HDD ou desconhecido, como o Windows classifica.
+    std::string media_type;
+
+    std::uint64_t size_bytes = 0;
+
+    /// O que o Windows responde sobre a saude: "Healthy", "Warning" ou
+    /// "Unhealthy". Um unico indicador dizendo que esta tudo bem nao autoriza
+    /// afirmar que o disco esta bem — so que nada foi detectado.
+    std::string health_status;
+
+    /// Contadores de confiabilidade. Ficam negativos quando o driver nao os
+    /// expoe, o que e comum em NVMe e em disco externo. Ausencia nao e zero.
+    int read_errors = -1;
+    int write_errors = -1;
+    int temperature_celsius = -1;
+    int wear_percent = -1;
+};
+
+struct DisksInfo {
+    bool available = false;
+    std::vector<PhysicalDiskInfo> disks;
+};
+
 struct SystemSnapshot {
     bool volumes_available = false;
     std::vector<VolumeInfo> volumes;
@@ -130,6 +156,7 @@ struct SystemSnapshot {
     UpdatesInfo updates;
     MemoryInfo memory;
     SecurityInfo security;
+    DisksInfo disks;
 };
 
 }

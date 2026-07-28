@@ -14,15 +14,23 @@ namespace zelo::collectors::detail {
 
 namespace {
 
-/// COM precisa ser inicializado por thread. O aplicativo tem outras partes que
-/// tambem usam COM, entao inicializar aqui nao pode atrapalhar quem ja
-/// inicializou — RPC_E_CHANGED_MODE significa exatamente isso e nao e erro.
+/// COM precisa ser inicializado por thread, e o Qt ja inicializa a thread
+/// principal do aplicativo como STA. Nesse caso o Windows responde
+/// RPC_E_CHANGED_MODE, que significa "ja inicializado de outro jeito" — a
+/// thread esta pronta para usar COM, so nao no modelo pedido.
+///
+/// Tratar isso como falha derrubava as duas coletas WMI dentro do aplicativo,
+/// enquanto nos testes, sem COM previo, tudo passava.
 class ComScope {
 public:
     ComScope() {
         const HRESULT result = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        initialized_ = SUCCEEDED(result);
-        owns_ = result == S_OK;
+
+        initialized_ = SUCCEEDED(result) || result == RPC_E_CHANGED_MODE;
+
+        // So desfaz o que esta chamada criou. Encerrar COM de quem inicializou
+        // antes deixaria o resto do aplicativo sem COM.
+        owns_ = result == S_OK || result == S_FALSE;
     }
 
     ~ComScope() {

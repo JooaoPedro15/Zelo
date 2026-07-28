@@ -1,5 +1,6 @@
 #include "core/usecases/quick_analysis.hpp"
 
+#include "core/rules/disk_health_rule.hpp"
 #include "core/rules/excessive_temporary_files_rule.hpp"
 #include "core/rules/low_free_space_rule.hpp"
 #include "core/rules/low_memory_rule.hpp"
@@ -43,6 +44,7 @@ QuickAnalysis QuickAnalysis::with_default_rules() {
         std::make_shared<const PendingRebootRule>(),
         std::make_shared<const LowMemoryRule>(),
         std::make_shared<const WeakProtectionRule>(),
+        std::make_shared<const DiskHealthRule>(),
     }};
 }
 
@@ -86,6 +88,9 @@ AnalysisResult QuickAnalysis::run(const SystemSnapshot& snapshot) const {
     }
     if (!snapshot.security.available) {
         result.unavailable.emplace_back("protecao do Windows");
+    }
+    if (!snapshot.disks.available) {
+        result.unavailable.emplace_back("saude fisica dos discos");
     }
 
     result.health = HealthScore::from_deductions(std::move(deductions));
