@@ -49,6 +49,7 @@ std::vector<Recommendation> TooManyStartupItemsRule::evaluate(const SystemSnapsh
             "inicializacao: " + names_text +
             ". Desativar um item da inicializacao nao desinstala nem impede de abrir depois.",
         .category = ActionCategory::DisableStartupItem,
+        .health_category = HealthCategory::Startup,
         .severity = candidate_paths.size() >= kSevereCount ? Severity::Serious : Severity::Attention,
         .risk = RiskLevel::Yellow,
         .confidence = Confidence::from_signals(

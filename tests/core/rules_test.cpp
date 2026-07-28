@@ -1,12 +1,18 @@
 #include <catch2/catch_test_macros.hpp>
 #include <core/rules/excessive_temporary_files_rule.hpp>
 #include <core/rules/low_free_space_rule.hpp>
+#include <core/rules/low_memory_rule.hpp>
+#include <core/rules/pending_reboot_rule.hpp>
+#include <core/rules/recurring_app_failures_rule.hpp>
 #include <core/rules/too_many_startup_items_rule.hpp>
 
 #include <string>
 
 using zelo::core::ExcessiveTemporaryFilesRule;
 using zelo::core::LowFreeSpaceRule;
+using zelo::core::LowMemoryRule;
+using zelo::core::PendingRebootRule;
+using zelo::core::RecurringAppFailuresRule;
 using zelo::core::RiskLevel;
 using zelo::core::StartupItemInfo;
 using zelo::core::SystemSnapshot;
@@ -182,6 +188,45 @@ TEST_CASE("a gravidade da inicializacao cresce com o excesso", "[rules]") {
     const auto many = rule.evaluate(snapshot_with_startup(30, 0));
     REQUIRE(many.size() == 1);
     CHECK(many.front().severity == zelo::core::Severity::Serious);
+}
+
+// Cada regra declara em que area da saude o achado pesa. Antes isso era
+// deduzido do tipo da acao, e falhas de aplicativo — que sao leitura, como
+// quase tudo no MVP — acabavam descontando de Armazenamento.
+TEST_CASE("cada regra desconta da area certa da saude", "[rules]") {
+    using zelo::core::HealthCategory;
+
+    SystemSnapshot snapshot;
+    snapshot.volumes_available = true;
+    snapshot.volumes = {{.letter = "C:",
+                         .total_bytes = 500 * kGigabyte,
+                         .free_bytes = 10 * kGigabyte,
+                         .is_system = true}};
+    snapshot.temporary_files = {.available = true, .total_bytes = 12 * kGigabyte, .file_count = 10};
+    snapshot.startup_available = true;
+    snapshot.startup_items = snapshot_with_startup(8, 0).startup_items;
+    snapshot.stability = {.available = true,
+                          .app_failures = {{.application = "Editor.exe", .count = 5}},
+                          .unexpected_shutdowns = 0,
+                          .window_days = 30};
+    snapshot.updates = {.available = true, .reboot_pending = true, .reboot_reasons = {"teste"}};
+    snapshot.memory = {.available = true,
+                       .total_bytes = 16 * kGigabyte,
+                       .available_bytes = 1 * kGigabyte,
+                       .load_percent = 94};
+
+    const auto check = [&snapshot](const zelo::core::AnalysisRule& rule, HealthCategory expected) {
+        const auto found = rule.evaluate(snapshot);
+        REQUIRE(found.size() == 1);
+        CHECK(found.front().health_category == expected);
+    };
+
+    check(LowFreeSpaceRule{}, HealthCategory::Storage);
+    check(ExcessiveTemporaryFilesRule{}, HealthCategory::Storage);
+    check(TooManyStartupItemsRule{}, HealthCategory::Startup);
+    check(RecurringAppFailuresRule{}, HealthCategory::Stability);
+    check(PendingRebootRule{}, HealthCategory::Updates);
+    check(LowMemoryRule{}, HealthCategory::Performance);
 }
 
 TEST_CASE("sem dados de inicializacao a regra nao conclui nada", "[rules]") {

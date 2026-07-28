@@ -28,6 +28,12 @@ SystemSnapshot healthy_snapshot() {
     snapshot.stability.available = true;
     snapshot.stability.window_days = 30;
 
+    snapshot.updates = {.available = true, .reboot_pending = false, .reboot_reasons = {}};
+    snapshot.memory = {.available = true,
+                       .total_bytes = 16 * kGigabyte,
+                       .available_bytes = 8 * kGigabyte,
+                       .load_percent = 50};
+
     return snapshot;
 }
 
@@ -95,7 +101,7 @@ TEST_CASE("o que nao pode ser observado e declarado", "[quick_analysis]") {
     CHECK(result.recommendations.empty());
     CHECK(result.health.overall() == 100);
 
-    // Volumes, temporarios, inicializacao e falhas registradas: quatro areas,
-    // todas declaradas como nao observadas.
-    CHECK(result.unavailable.size() == 4);
+    // Volumes, temporarios, inicializacao, falhas registradas, atualizacoes e
+    // memoria: seis areas, todas declaradas como nao observadas.
+    CHECK(result.unavailable.size() == 6);
 }

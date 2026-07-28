@@ -70,6 +70,35 @@ struct StabilityInfo {
     int window_days = 0;
 };
 
+struct UpdatesInfo {
+    bool available = false;
+
+    /// O Windows aplicou algo que so termina depois de reiniciar. Ate la o
+    /// sistema fica num estado intermediario, que costuma explicar lentidao e
+    /// falhas que somem sozinhas depois do reinicio.
+    bool reboot_pending = false;
+
+    /// De onde veio o indicio, para a recomendacao poder mostrar em vez de
+    /// apenas afirmar.
+    std::vector<std::string> reboot_reasons;
+};
+
+struct MemoryInfo {
+    bool available = false;
+    std::uint64_t total_bytes = 0;
+    std::uint64_t available_bytes = 0;
+
+    /// Quanto da memoria comprometida esta em uso, como o proprio Windows
+    /// calcula. Uso alto nao e defeito: o Windows aproveita memoria livre como
+    /// cache de proposito. So a falta de memoria disponivel indica aperto.
+    int load_percent = 0;
+
+    [[nodiscard]] double available_ratio() const {
+        return total_bytes == 0 ? 0.0
+                                : static_cast<double>(available_bytes) / static_cast<double>(total_bytes);
+    }
+};
+
 struct SystemSnapshot {
     bool volumes_available = false;
     std::vector<VolumeInfo> volumes;
@@ -79,6 +108,8 @@ struct SystemSnapshot {
 
     TemporaryFilesInfo temporary_files;
     StabilityInfo stability;
+    UpdatesInfo updates;
+    MemoryInfo memory;
 };
 
 }

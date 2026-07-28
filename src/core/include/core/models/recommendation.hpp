@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/confidence/confidence.hpp"
+#include "core/models/health_category.hpp"
 #include "core/risk/risk_classifier.hpp"
 #include "core/risk/risk_level.hpp"
 
@@ -42,6 +43,12 @@ struct Recommendation {
     std::string description;
 
     ActionCategory category = ActionCategory::ReadOnlyAnalysis;
+
+    /// Em que area da saude este achado pesa. Cada regra declara a sua: deduzir
+    /// isso do tipo da acao nao funciona, porque ler eventos e ler disco sao
+    /// ambas analise somente leitura e falam de areas diferentes.
+    HealthCategory health_category = HealthCategory::Storage;
+
     Severity severity = Severity::Info;
     RiskLevel risk = RiskLevel::Red;
     Confidence confidence;

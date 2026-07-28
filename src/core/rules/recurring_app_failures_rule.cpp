@@ -65,6 +65,7 @@ std::vector<Recommendation> RecurringAppFailuresRule::evaluate(const SystemSnaps
                        " dias. Repeticao costuma indicar instalacao danificada, incompatibilidade "
                        "com uma atualizacao recente ou problema em um componente compartilhado.",
         .category = ActionCategory::ReadOnlyAnalysis,
+        .health_category = HealthCategory::Stability,
         .severity = recurring.front().count >= kSevereFailures ? Severity::Serious
                                                                : Severity::Attention,
         .risk = RiskLevel::Green,

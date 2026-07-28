@@ -1,21 +1,12 @@
 #pragma once
 
+#include "core/models/health_category.hpp"
+
 #include <map>
 #include <string>
 #include <vector>
 
 namespace zelo::core {
-
-enum class HealthCategory {
-    Storage,
-    WindowsIntegrity,
-    Startup,
-    Disks,
-    Updates,
-    Security,
-    Performance,
-    Stability,
-};
 
 /// Um desconto na pontuacao, sempre com a causa visivel. A pontuacao nunca
 /// perde pontos sem que o usuario possa ver de onde veio o desconto.

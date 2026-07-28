@@ -25,6 +25,10 @@ add_library(zelo_core STATIC
     include/core/rules/too_many_startup_items_rule.hpp
     rules/recurring_app_failures_rule.cpp
     include/core/rules/recurring_app_failures_rule.hpp
+    rules/pending_reboot_rule.cpp
+    include/core/rules/pending_reboot_rule.hpp
+    rules/low_memory_rule.cpp
+    include/core/rules/low_memory_rule.hpp
     usecases/quick_analysis.cpp
     include/core/usecases/quick_analysis.hpp
 )

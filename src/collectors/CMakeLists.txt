@@ -13,6 +13,10 @@ add_library(zelo_collectors STATIC
     include/collectors/snapshot_collector.hpp
     stability_collector.cpp
     include/collectors/stability_collector.hpp
+    update_collector.cpp
+    include/collectors/update_collector.hpp
+    memory_collector.cpp
+    include/collectors/memory_collector.hpp
     event_log_parsing.cpp
     include/collectors/event_log_parsing.hpp
     detail/text.cpp
