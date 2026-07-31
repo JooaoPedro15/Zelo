@@ -44,6 +44,7 @@ SystemSnapshot healthy_snapshot() {
                                  .media_type = "SSD",
                                  .size_bytes = 500 * kGigabyte,
                                  .health_status = "Healthy"}}};
+    snapshot.integrity = {.available = true, .window_days = 30};
 
     return snapshot;
 }
@@ -112,6 +113,6 @@ TEST_CASE("o que nao pode ser observado e declarado", "[quick_analysis]") {
     CHECK(result.recommendations.empty());
     CHECK(result.health.overall() == 100);
 
-    // Oito areas observaveis, todas declaradas como nao observadas.
-    CHECK(result.unavailable.size() == 8);
+    // Nove areas observaveis, todas declaradas como nao observadas.
+    CHECK(result.unavailable.size() == 9);
 }

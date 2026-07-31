@@ -1,8 +1,11 @@
 #include "collectors/disk_collector.hpp"
 
+#include "collectors/detail/event_log.hpp"
 #include "collectors/detail/wmi.hpp"
 
+#include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 
 namespace zelo::collectors {
@@ -44,6 +47,8 @@ int optional_counter(const std::optional<std::int64_t>& value) {
 }
 
 }
+
+DiskCollector::DiskCollector(int window_days) : window_days_(window_days) {}
 
 core::DisksInfo DiskCollector::collect() const {
     core::DisksInfo info;
@@ -100,8 +105,45 @@ core::DisksInfo DiskCollector::collect() const {
         info.disks.push_back(std::move(disk));
     }
 
+    // Os eventos do sistema de arquivos vem do log, nao do WMI: falhar la nao
+    // invalida o que ja foi lido sobre os discos fisicos.
+    collect_filesystem_events(info);
+
     info.available = true;
     return info;
+}
+
+void DiskCollector::collect_filesystem_events(core::DisksInfo& info) const {
+    const auto window_ms =
+        std::to_wstring(static_cast<long long>(window_days_) * 24 * 60 * 60 * 1000);
+
+    // Evento 55 do NTFS: "corrupcao detectada na estrutura do sistema de
+    // arquivos". E o aviso mais direto que o Windows da de que um volume
+    // precisa de verificacao.
+    const std::wstring query = L"*[System[Provider[@Name='Ntfs'] and EventID=55 and "
+                               L"TimeCreated[timediff(@SystemTime) <= " +
+                               window_ms + L"]]]";
+
+    const auto documents = detail::query_event_channel(L"System", query, 200);
+    if (!documents) {
+        return;
+    }
+
+    std::set<std::string> volumes;
+    for (const auto& document : *documents) {
+        ++info.filesystem_corruption.event_count;
+
+        if (const auto volume = detail::event_field(document, "DriveName"); !volume.empty()) {
+            volumes.insert(volume);
+        }
+        if (const auto when = detail::event_time(document); !when.empty()) {
+            info.filesystem_corruption.last_seen =
+                std::max(info.filesystem_corruption.last_seen, when);
+        }
+    }
+
+    info.filesystem_corruption.affected_volumes.assign(volumes.begin(), volumes.end());
+    info.filesystem_events_available = true;
 }
 
 bool DiskCollector::collect_into(core::SystemSnapshot& snapshot) const {

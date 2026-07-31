@@ -139,9 +139,39 @@ struct PhysicalDiskInfo {
     int wear_percent = -1;
 };
 
+/// Corrupcao na estrutura do sistema de arquivos de um volume, registrada pelo
+/// proprio NTFS. E problema diferente de componente do Windows danificado: a
+/// ferramenta aqui e o chkdsk, nao o sfc.
+struct FilesystemCorruptionInfo {
+    std::size_t event_count = 0;
+    std::vector<std::string> affected_volumes;
+    std::string last_seen;
+};
+
 struct DisksInfo {
     bool available = false;
     std::vector<PhysicalDiskInfo> disks;
+
+    bool filesystem_events_available = false;
+    FilesystemCorruptionInfo filesystem_corruption;
+};
+
+/// Sinais de que arquivos ou componentes do Windows podem estar danificados.
+///
+/// A deteccao e por leitura de eventos: o MVP nao executa sfc nem DISM, que
+/// exigem administrador e demoram. O que o Zelo faz e reunir a evidencia de que
+/// vale a pena executa-los, e explicar o que cada um faz.
+struct IntegrityInfo {
+    bool available = false;
+
+    /// Eventos do servico de componentes indicando corrupcao detectada.
+    std::size_t corruption_events = 0;
+
+    /// Eventos de componente lado a lado com manifesto ou assembly invalido.
+    std::size_t component_events = 0;
+
+    std::string last_seen;
+    int window_days = 0;
 };
 
 struct SystemSnapshot {
@@ -157,6 +187,7 @@ struct SystemSnapshot {
     MemoryInfo memory;
     SecurityInfo security;
     DisksInfo disks;
+    IntegrityInfo integrity;
 };
 
 }

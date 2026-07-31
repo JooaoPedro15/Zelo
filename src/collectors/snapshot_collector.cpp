@@ -18,7 +18,9 @@ core::SystemSnapshot collect_snapshot(std::stop_token token) {
 
     VolumeCollector{}.collect_into(snapshot);
     StartupCollector{}.collect_into(snapshot);
-    StabilityCollector{}.collect_into(snapshot);
+    const StabilityCollector stability;
+    stability.collect_into(snapshot);
+    stability.collect_integrity_into(snapshot);
     UpdateCollector{}.collect_into(snapshot);
     MemoryCollector{}.collect_into(snapshot);
     SecurityCollector{}.collect_into(snapshot);

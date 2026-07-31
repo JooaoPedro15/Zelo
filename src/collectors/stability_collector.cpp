@@ -1,5 +1,6 @@
-#include "collectors/stability_collector.hpp"
+﻿#include "collectors/stability_collector.hpp"
 
+#include "collectors/detail/event_log.hpp"
 #include "collectors/detail/text.hpp"
 #include "collectors/event_log_parsing.hpp"
 
@@ -15,112 +16,6 @@
 
 namespace zelo::collectors {
 
-namespace {
-
-/// RAII para os handles do log de eventos: sao varios pontos de saida, e vazar
-/// handle num aplicativo que o usuario deixa aberto e um problema real.
-class EventHandle {
-public:
-    explicit EventHandle(EVT_HANDLE handle = nullptr) : handle_(handle) {}
-
-    ~EventHandle() {
-        if (handle_ != nullptr) {
-            ::EvtClose(handle_);
-        }
-    }
-
-    EventHandle(const EventHandle&) = delete;
-    EventHandle& operator=(const EventHandle&) = delete;
-    EventHandle(EventHandle&& other) noexcept : handle_(other.release()) {}
-
-    EventHandle& operator=(EventHandle&& other) noexcept {
-        if (this != &other) {
-            reset(other.release());
-        }
-        return *this;
-    }
-
-    [[nodiscard]] EVT_HANDLE get() const { return handle_; }
-    [[nodiscard]] explicit operator bool() const { return handle_ != nullptr; }
-
-    EVT_HANDLE release() {
-        EVT_HANDLE released = handle_;
-        handle_ = nullptr;
-        return released;
-    }
-
-    void reset(EVT_HANDLE handle) {
-        if (handle_ != nullptr) {
-            ::EvtClose(handle_);
-        }
-        handle_ = handle;
-    }
-
-private:
-    EVT_HANDLE handle_;
-};
-
-std::string render_event(EVT_HANDLE event) {
-    DWORD needed = 0;
-    DWORD produced = 0;
-    ::EvtRender(nullptr, event, EvtRenderEventXml, 0, nullptr, &needed, &produced);
-
-    if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER || needed == 0) {
-        return {};
-    }
-
-    std::wstring buffer(needed / sizeof(wchar_t) + 1, L'\0');
-    if (::EvtRender(nullptr, event, EvtRenderEventXml, needed, buffer.data(), &needed, &produced) ==
-        FALSE) {
-        return {};
-    }
-
-    buffer.resize(std::wcslen(buffer.c_str()));
-    return detail::to_utf8(buffer);
-}
-
-/// Percorre um canal com a consulta dada, devolvendo o XML de cada evento.
-///
-/// Devolve vazio (`nullopt`) quando o canal nao pode ser consultado. Lista
-/// vazia e resultado legitimo; nao conseguir olhar e outra coisa, e confundir
-/// os dois faria a analise afirmar que esta tudo bem sem ter visto nada.
-std::optional<std::vector<std::string>> query_channel(const wchar_t* channel,
-                                                      const std::wstring& query,
-                                                      std::size_t limit) {
-    const EventHandle results(::EvtQuery(nullptr, channel, query.c_str(),
-                                         EvtQueryChannelPath | EvtQueryReverseDirection));
-    if (!results) {
-        spdlog::warn("nao foi possivel consultar o canal de eventos (erro {})", ::GetLastError());
-        return std::nullopt;
-    }
-
-    std::vector<std::string> documents;
-
-    while (documents.size() < limit) {
-        std::array<EVT_HANDLE, 32> batch{};
-        DWORD returned = 0;
-
-        if (::EvtNext(results.get(), static_cast<DWORD>(batch.size()), batch.data(), INFINITE, 0,
-                      &returned) == FALSE) {
-            if (const DWORD error = ::GetLastError(); error != ERROR_NO_MORE_ITEMS) {
-                spdlog::warn("leitura de eventos interrompida (erro {})", error);
-            }
-            break;
-        }
-
-        for (DWORD index = 0; index < returned; ++index) {
-            const EventHandle event(batch.at(index));
-            if (auto xml = render_event(event.get()); !xml.empty()) {
-                documents.push_back(std::move(xml));
-            }
-        }
-    }
-
-    return documents;
-}
-
-}
-
 StabilityCollector::StabilityCollector(int window_days) : window_days_(window_days) {}
 
 core::StabilityInfo StabilityCollector::collect() const {
@@ -134,7 +29,7 @@ core::StabilityInfo StabilityCollector::collect() const {
         L"*[System[(EventID=1000 or EventID=1002) and TimeCreated[timediff(@SystemTime) <= " +
         window_ms + L"]]]";
 
-    const auto failure_documents = query_channel(L"Application", failures_query, 500);
+    const auto failure_documents = detail::query_event_channel(L"Application", failures_query, 500);
     if (!failure_documents) {
         // Sem conseguir ler o canal principal nao ha o que afirmar sobre
         // estabilidade. A analise dira que nao olhou.
@@ -158,12 +53,65 @@ core::StabilityInfo StabilityCollector::collect() const {
 
     // O canal System pode exigir elevacao. Nao conseguir le-lo nao invalida o
     // que ja foi lido do canal Application.
-    if (const auto shutdowns = query_channel(L"System", shutdown_query, 200)) {
+    if (const auto shutdowns = detail::query_event_channel(L"System", shutdown_query, 200)) {
         info.unexpected_shutdowns = shutdowns->size();
     }
 
     info.available = true;
     return info;
+}
+
+core::IntegrityInfo StabilityCollector::collect_integrity() const {
+    core::IntegrityInfo info;
+    info.window_days = window_days_;
+
+    const auto window_ms =
+        std::to_wstring(static_cast<long long>(window_days_) * 24 * 60 * 60 * 1000);
+    const std::wstring window_clause =
+        L" and TimeCreated[timediff(@SystemTime) <= " + window_ms + L"]";
+
+    // O servico de componentes registra aqui quando encontra algo danificado na
+    // propria instalacao do Windows.
+    const auto servicing = detail::query_event_channel(
+        L"Setup",
+        L"*[System[Provider[@Name='Microsoft-Windows-Servicing'] and Level=2" + window_clause + L"]]",
+        200);
+
+    // SideBySide registra assembly ou manifesto invalido â€” componente do
+    // Windows danificado de verdade. O relatorio de erros do sistema nao serve
+    // aqui: ele registra tela azul, que e problema de estabilidade, nao de
+    // integridade de arquivo.
+    const auto components = detail::query_event_channel(
+        L"Application", L"*[System[Provider[@Name='SideBySide'] and Level=2" + window_clause + L"]]",
+        200);
+
+    if (!servicing && !components) {
+        // Nenhum dos dois canais respondeu: nao ha o que afirmar sobre
+        // integridade, e a analise dira que nao olhou.
+        return info;
+    }
+
+    info.corruption_events = servicing ? servicing->size() : 0;
+    info.component_events = components ? components->size() : 0;
+
+    for (const auto* documents : {&servicing, &components}) {
+        if (!*documents) {
+            continue;
+        }
+        for (const auto& document : **documents) {
+            if (const auto parsed = parse_failure_event(document); parsed && !parsed->when.empty()) {
+                info.last_seen = std::max(info.last_seen, parsed->when);
+            }
+        }
+    }
+
+    info.available = true;
+    return info;
+}
+
+bool StabilityCollector::collect_integrity_into(core::SystemSnapshot& snapshot) const {
+    snapshot.integrity = collect_integrity();
+    return snapshot.integrity.available;
 }
 
 bool StabilityCollector::collect_into(core::SystemSnapshot& snapshot) const {

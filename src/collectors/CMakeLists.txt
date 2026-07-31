@@ -19,6 +19,8 @@ add_library(zelo_collectors STATIC
     include/collectors/memory_collector.hpp
     detail/wmi.cpp
     include/collectors/detail/wmi.hpp
+    detail/event_log.cpp
+    include/collectors/detail/event_log.hpp
     security_collector.cpp
     include/collectors/security_collector.hpp
     disk_collector.cpp

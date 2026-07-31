@@ -1,12 +1,14 @@
 #include "core/usecases/quick_analysis.hpp"
 
 #include "core/rules/disk_health_rule.hpp"
+#include "core/rules/filesystem_corruption_rule.hpp"
 #include "core/rules/excessive_temporary_files_rule.hpp"
 #include "core/rules/low_free_space_rule.hpp"
 #include "core/rules/low_memory_rule.hpp"
 #include "core/rules/pending_reboot_rule.hpp"
 #include "core/rules/recurring_app_failures_rule.hpp"
 #include "core/rules/too_many_startup_items_rule.hpp"
+#include "core/rules/windows_integrity_rule.hpp"
 #include "core/rules/weak_protection_rule.hpp"
 
 #include <utility>
@@ -45,6 +47,8 @@ QuickAnalysis QuickAnalysis::with_default_rules() {
         std::make_shared<const LowMemoryRule>(),
         std::make_shared<const WeakProtectionRule>(),
         std::make_shared<const DiskHealthRule>(),
+        std::make_shared<const WindowsIntegrityRule>(),
+        std::make_shared<const FilesystemCorruptionRule>(),
     }};
 }
 
@@ -91,6 +95,9 @@ AnalysisResult QuickAnalysis::run(const SystemSnapshot& snapshot) const {
     }
     if (!snapshot.disks.available) {
         result.unavailable.emplace_back("saude fisica dos discos");
+    }
+    if (!snapshot.integrity.available) {
+        result.unavailable.emplace_back("integridade do Windows");
     }
 
     result.health = HealthScore::from_deductions(std::move(deductions));
