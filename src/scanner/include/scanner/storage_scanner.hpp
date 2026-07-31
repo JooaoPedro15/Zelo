@@ -42,10 +42,16 @@ struct LargeFile {
     CloudState cloud_state = CloudState::Local;
 };
 
+/// Os arquivos soltos numa pasta — nao inclui o que ha nas subpastas.
+///
+/// Somar a subarvore e trabalho de quem consome: a varredura anda em largura e
+/// nao sabe, ao terminar uma pasta, se ainda ha filhas por visitar.
 struct DirectoryRollup {
     std::string path;
     std::uint64_t total_bytes = 0;
     std::size_t file_count = 0;
+    std::uint64_t allocated_bytes = 0;
+    std::size_t depth = 0;
 };
 
 struct ScanResult {
@@ -97,6 +103,14 @@ struct ScanOptions {
     /// Ate que profundidade agregar por diretorio. Mais fundo que isso vira
     /// ruido na interface e explode o tamanho do historico.
     std::size_t rollup_depth = 2;
+
+    /// Emite toda pasta encontrada, sem limite de profundidade e mesmo quando
+    /// nao ha arquivo solto nela.
+    ///
+    /// Quem monta um retrato precisa disso: o total de uma pasta e a soma de
+    /// tudo abaixo dela, e uma pasta intermediaria vazia ainda e o caminho por
+    /// onde a soma sobe.
+    bool emit_all_directories = false;
 };
 
 /// Percorre uma arvore de diretorios somando tamanho, sem alterar nada.

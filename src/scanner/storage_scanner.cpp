@@ -203,6 +203,7 @@ ScanResult StorageScanner::scan(const std::filesystem::path& root, std::stop_tok
         }
 
         std::uint64_t directory_bytes = 0;
+        std::uint64_t directory_allocated = 0;
         std::size_t directory_files = 0;
 
         do {
@@ -261,6 +262,7 @@ ScanResult StorageScanner::scan(const std::filesystem::path& root, std::stop_tok
             result.total_bytes += bytes;
             ++result.file_count;
             directory_bytes += bytes;
+            directory_allocated += allocated;
             ++directory_files;
 
             result.largest_files.push_back(LargeFile{
@@ -283,9 +285,13 @@ ScanResult StorageScanner::scan(const std::filesystem::path& root, std::stop_tok
             ++result.skipped_count;
         }
 
-        if (current.depth <= options_.rollup_depth && directory_files > 0) {
-            result.directories.push_back(
-                DirectoryRollup{current.path.string(), directory_bytes, directory_files});
+        const bool within_depth = current.depth <= options_.rollup_depth;
+        if (options_.emit_all_directories || (within_depth && directory_files > 0)) {
+            result.directories.push_back(DirectoryRollup{.path = current.path.string(),
+                                                         .total_bytes = directory_bytes,
+                                                         .file_count = directory_files,
+                                                         .allocated_bytes = directory_allocated,
+                                                         .depth = current.depth});
         }
 
         // Poda continua em vez de ordenar no fim: manter todos os arquivos de um

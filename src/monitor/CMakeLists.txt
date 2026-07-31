@@ -1,7 +1,9 @@
 add_library(zelo_monitor STATIC
     snapshot_store.cpp
+    snapshot_taker.cpp
     include/monitor/snapshot.hpp
     include/monitor/snapshot_store.hpp
+    include/monitor/snapshot_taker.hpp
 )
 
 target_include_directories(zelo_monitor
