@@ -150,6 +150,54 @@ TEST_CASE("o registro da quarentena sobrevive a reabertura", "[quarantine]") {
     CHECK(reaberto.restore(id));
 }
 
+// O perfil de quem usa o Zelo costuma ter acento. Se o registro nao puder ser
+// gravado nesse caminho, os arquivos saem do lugar sem que nada saiba de onde
+// vieram — e o desfazer, que e a razao de a quarentena existir, se perde.
+TEST_CASE("quarentena funciona em caminho com acento", "[quarantine]") {
+    const auto root = std::filesystem::temp_directory_path() / "zelo-quarentena-João-ação";
+
+    std::error_code error;
+    std::filesystem::remove_all(root, error);
+    std::filesystem::create_directories(root / "origem", error);
+
+    const auto file = root / "origem" / "cache.tmp";
+    std::ofstream(file, std::ios::binary) << "conteudo";
+
+    zelo::core::ProtectedPathsSpec spec;
+    spec.subtree_roots = {(root / "sistema").string()};
+    const QuarantineStore store{root / "quarentena", ProtectedPaths{spec}};
+
+    const auto entry = store.take(file, "teste com acento");
+
+    REQUIRE(entry.has_value());
+    CHECK_FALSE(std::filesystem::exists(file));
+
+    // O registro precisa ter sobrevivido: sem ele nao ha como devolver.
+    REQUIRE(store.entries().size() == 1);
+    REQUIRE(store.restore(entry->id));
+    CHECK(std::filesystem::exists(file));
+
+    std::filesystem::remove_all(root, error);
+}
+
+// Sem registro nao ha desfazer, e sem desfazer a quarentena nao cumpre o que
+// promete. Nesse caso e melhor deixar o arquivo onde esta.
+TEST_CASE("arquivo nao sai do lugar se o registro nao puder ser gravado", "[quarantine]") {
+    const Sandbox sandbox;
+    const QuarantineStore store{sandbox.quarantine(), sandbox_paths(sandbox)};
+
+    const auto file = sandbox.make_file("a.tmp", "conteudo");
+
+    // Um arquivo no lugar do diretorio de registro impede a gravacao.
+    std::error_code error;
+    std::filesystem::remove_all(sandbox.quarantine(), error);
+    std::filesystem::create_directories(sandbox.quarantine().parent_path(), error);
+    std::ofstream(sandbox.quarantine(), std::ios::binary) << "bloqueio";
+
+    CHECK_FALSE(store.take(file, "teste").has_value());
+    CHECK(std::filesystem::exists(file));
+}
+
 TEST_CASE("arquivo inexistente nao entra em quarentena", "[quarantine]") {
     const Sandbox sandbox;
     const QuarantineStore store{sandbox.quarantine(), sandbox_paths(sandbox)};

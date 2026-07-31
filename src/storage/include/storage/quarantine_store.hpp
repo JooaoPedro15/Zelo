@@ -58,7 +58,9 @@ private:
     [[nodiscard]] std::filesystem::path manifest_path() const;
     [[nodiscard]] std::filesystem::path storage_path(const std::string& id) const;
 
-    void write_entries(const std::vector<QuarantineEntry>& entries) const;
+    /// Devolve falso quando o registro nao pode ser gravado. Quem chama precisa
+    /// tratar: sem registro, um arquivo movido vira orfao e o desfazer se perde.
+    [[nodiscard]] bool write_entries(const std::vector<QuarantineEntry>& entries) const;
 
     std::filesystem::path root_;
     core::ProtectedPaths protected_paths_;

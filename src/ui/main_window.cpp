@@ -282,8 +282,7 @@ void MainWindow::clean_selected_finding() {
         details += QString::fromStdString(limitations) + QStringLiteral("\n\n");
     }
     details += QStringLiteral(
-        "Os arquivos vao para a quarentena do Zelo, nao sao apagados agora. Se algo fizer "
-        "falta, da para devolver.\n\n"
+        "Os arquivos sao apagados de vez e o espaco e liberado na hora.\n\n"
         "Programas abertos podem estar usando parte deles; esses ficam onde estao e o espaco "
         "liberado sera menor que o estimado.");
     confirmation.setInformativeText(details);
@@ -302,19 +301,25 @@ void MainWindow::clean_selected_finding() {
     action_button_->setText(QStringLiteral("Limpando..."));
     QApplication::processEvents();
 
-    const core::CleanupOutcome outcome = cleanup.execute(plan);
+    // Conteudo do catalogo e recriado pelo programa dono, entao guardar copia
+    // ocuparia o mesmo espaco que se queria liberar.
+    const core::CleanupOutcome outcome = cleanup.execute(plan, storage::RemovalMode::Delete);
 
     QString report = QStringLiteral("%1 arquivos removidos, %2 liberados.")
                          .arg(outcome.removed_count)
                          .arg(QString::fromStdString(core::format_bytes(outcome.freed_bytes)));
     if (!outcome.skipped.empty()) {
         report += QStringLiteral("\n\n%1 arquivos ficaram onde estavam, em geral por estarem "
-                                 "em uso por algum programa aberto.")
+                                 "em uso por algum programa aberto. Fechar o programa e limpar "
+                                 "de novo costuma resolver.")
                       .arg(outcome.skipped.size());
     }
-    report += QStringLiteral("\n\nOs arquivos estao na quarentena e podem ser devolvidos.");
 
     QMessageBox::information(this, QStringLiteral("Limpeza concluida"), report);
+
+    // O botao volta a funcionar antes da reanalise. Sem isto, limpar um achado
+    // deixava todos os outros sem acao.
+    action_button_->setEnabled(true);
 
     // Reanalisa: a pontuacao e o espaco livre mudaram, e mostrar numero velho
     // depois de agir seria enganoso.

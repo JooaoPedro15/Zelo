@@ -79,7 +79,7 @@ std::vector<QuarantineEntry> QuarantineStore::entries() const {
     return entries;
 }
 
-void QuarantineStore::write_entries(const std::vector<QuarantineEntry>& entries) const {
+bool QuarantineStore::write_entries(const std::vector<QuarantineEntry>& entries) const {
     nlohmann::json items = nlohmann::json::array();
     for (const auto& entry : entries) {
         items.push_back(nlohmann::json{
@@ -96,10 +96,25 @@ void QuarantineStore::write_entries(const std::vector<QuarantineEntry>& entries)
     // Escrita atomica: uma queda no meio da gravacao nao pode deixar o registro
     // pela metade, senao a quarentena perde a referencia de arquivos que ja
     // saiu do lugar de origem.
-    const auto temporary = manifest_path().string() + ".tmp";
+    //
+    // O caminho e passado como `path`, nunca como texto: converter para string
+    // quebra em perfil com acento, e o registro deixaria de ser gravado sem que
+    // ninguem percebesse.
+    std::filesystem::path temporary = manifest_path();
+    temporary += ".tmp";
+
     {
         std::ofstream file(temporary, std::ios::trunc);
+        if (!file) {
+            spdlog::error("nao foi possivel gravar o registro da quarentena");
+            return false;
+        }
+
         file << document.dump(2);
+        if (!file) {
+            spdlog::error("falha ao escrever o registro da quarentena");
+            return false;
+        }
     }
 
     std::error_code error;
@@ -108,6 +123,12 @@ void QuarantineStore::write_entries(const std::vector<QuarantineEntry>& entries)
         std::filesystem::remove(manifest_path(), error);
         std::filesystem::rename(temporary, manifest_path(), error);
     }
+
+    if (error) {
+        spdlog::error("nao foi possivel substituir o registro da quarentena");
+        return false;
+    }
+    return true;
 }
 
 std::optional<QuarantineEntry> QuarantineStore::take(const std::filesystem::path& file,
@@ -164,7 +185,16 @@ std::optional<QuarantineEntry> QuarantineStore::take(const std::filesystem::path
 
     auto all = entries();
     all.push_back(entry);
-    write_entries(all);
+
+    if (!write_entries(all)) {
+        // Sem registro nao ha como devolver, e a quarentena existe justamente
+        // para permitir devolver. Melhor deixar o arquivo onde estava do que
+        // move-lo para um lugar de onde ninguem sabe traze-lo de volta.
+        std::error_code undo;
+        std::filesystem::rename(storage_path(entry.id), file, undo);
+        spdlog::error("quarentena desfeita: o registro nao pode ser gravado");
+        return std::nullopt;
+    }
 
     return entry;
 }
@@ -202,7 +232,13 @@ bool QuarantineStore::restore(const std::string& id) const {
     }
 
     all.erase(found);
-    write_entries(all);
+
+    // O arquivo ja voltou ao lugar. Se o registro nao puder ser atualizado, a
+    // entrada obsoleta fica para tras, mas isso e bem menos grave do que o
+    // arquivo nao ter voltado.
+    if (!write_entries(all)) {
+        spdlog::warn("arquivo restaurado, mas o registro da quarentena nao pode ser atualizado");
+    }
     return true;
 }
 
@@ -231,8 +267,8 @@ std::size_t QuarantineStore::purge_older_than(int days) const {
         kept.push_back(std::move(entry));
     }
 
-    if (purged > 0) {
-        write_entries(kept);
+    if (purged > 0 && !write_entries(kept)) {
+        spdlog::warn("purga concluida, mas o registro da quarentena nao pode ser atualizado");
     }
     return purged;
 }

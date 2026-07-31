@@ -12,6 +12,7 @@ using zelo::core::CleanupPlan;
 using zelo::core::ProtectedPaths;
 using zelo::storage::CleanupService;
 using zelo::storage::QuarantineStore;
+using zelo::storage::RemovalMode;
 
 namespace {
 
@@ -111,7 +112,7 @@ TEST_CASE("executar remove os arquivos e permite desfazer", "[cleanup]") {
     const auto segundo = sandbox.make_file("temp/b.tmp", 250);
 
     const CleanupPlan plan = service.plan({primeiro.string(), segundo.string()}, "temporarios");
-    const auto outcome = service.execute(plan);
+    const auto outcome = service.execute(plan, RemovalMode::Quarantine);
 
     CHECK(outcome.removed_count == 2);
     CHECK(outcome.freed_bytes == 350);
@@ -143,7 +144,7 @@ TEST_CASE("executar revalida a protecao, nao confia no plano", "[cleanup]") {
                                      .recommendation_id = "forjado"});
 
     const auto protegido = sandbox.make_file("sistema/forjado.dll", 10);
-    const auto outcome = service.execute(plan);
+    const auto outcome = service.execute(plan, RemovalMode::Delete);
 
     CHECK(outcome.removed_count == 0);
     CHECK(outcome.skipped.size() == 1);
@@ -180,7 +181,8 @@ TEST_CASE("limpar uma pasta esvazia o conteudo mas mantem a pasta", "[cleanup]")
     const auto arquivo = sandbox.make_file("cache/a.bin", 100);
     const auto pasta = sandbox.root() / "cache";
 
-    const auto outcome = service.execute(service.plan_folder(pasta.string(), "cache-de-teste"));
+    const auto outcome =
+        service.execute(service.plan_folder(pasta.string(), "cache-de-teste"), RemovalMode::Delete);
 
     CHECK(outcome.removed_count == 1);
     CHECK_FALSE(std::filesystem::exists(arquivo));
@@ -215,7 +217,7 @@ TEST_CASE("plano vazio nao faz nada", "[cleanup]") {
     const Sandbox sandbox;
     const CleanupService service{sandbox.quarantine(), sandbox.paths()};
 
-    const auto outcome = service.execute(CleanupPlan{});
+    const auto outcome = service.execute(CleanupPlan{}, RemovalMode::Delete);
 
     CHECK(outcome.removed_count == 0);
     CHECK(outcome.freed_bytes == 0);
@@ -234,9 +236,38 @@ TEST_CASE("arquivo que sumiu entre o plano e a execucao nao quebra a limpeza", "
     std::error_code error;
     std::filesystem::remove(some, error);
 
-    const auto outcome = service.execute(plan);
+    const auto outcome = service.execute(plan, RemovalMode::Delete);
 
     CHECK(outcome.removed_count == 1);
     CHECK(outcome.freed_bytes == 70);
     CHECK(outcome.skipped.size() == 1);
+}
+
+// O botao promete liberar espaco. Guardar copia numa pasta do mesmo disco
+// ocuparia exatamente o que se queria liberar, e a promessa seria falsa.
+TEST_CASE("apagar libera espaco de verdade, sem copia na quarentena", "[cleanup]") {
+    const Sandbox sandbox;
+    const auto quarantine = sandbox.quarantine();
+    const CleanupService service{quarantine, sandbox.paths()};
+
+    const auto arquivo = sandbox.make_file("cache/grande.bin", 4096);
+
+    const auto outcome =
+        service.execute(service.plan({arquivo.string()}, "cache"), RemovalMode::Delete);
+
+    CHECK(outcome.removed_count == 1);
+    CHECK(outcome.freed_bytes == 4096);
+    CHECK_FALSE(std::filesystem::exists(arquivo));
+
+    // Nada foi guardado: nem entrada no registro, nem copia no disco.
+    CHECK(quarantine.entries().empty());
+    CHECK(outcome.quarantine_ids.empty());
+
+    std::error_code error;
+    const auto guardados = std::filesystem::exists(sandbox.root() / "quarentena" / "arquivos", error)
+                               ? std::distance(std::filesystem::directory_iterator(
+                                                   sandbox.root() / "quarentena" / "arquivos"),
+                                               std::filesystem::directory_iterator{})
+                               : 0;
+    CHECK(guardados == 0);
 }

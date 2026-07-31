@@ -83,7 +83,8 @@ core::CleanupPlan CleanupService::plan_folder(const std::string& folder,
     return expanded;
 }
 
-core::CleanupOutcome CleanupService::execute(const core::CleanupPlan& plan) const {
+core::CleanupOutcome CleanupService::execute(const core::CleanupPlan& plan,
+                                             RemovalMode mode) const {
     core::CleanupOutcome outcome;
 
     for (const auto& item : plan.items) {
@@ -95,10 +96,29 @@ core::CleanupOutcome CleanupService::execute(const core::CleanupPlan& plan) cons
             continue;
         }
 
+        if (mode == RemovalMode::Delete) {
+            std::error_code error;
+            const auto size = std::filesystem::file_size(item.path, error);
+            if (error) {
+                outcome.skipped.push_back(item.path + " — nao pode ser lido agora");
+                continue;
+            }
+
+            if (!std::filesystem::remove(item.path, error) || error) {
+                // Costuma ser arquivo em uso por um programa aberto. Nao e
+                // falha do plano: e informacao para o usuario entender por que
+                // sobrou menos espaco do que a estimativa dizia.
+                outcome.skipped.push_back(item.path + " — em uso ou sem permissao");
+                continue;
+            }
+
+            ++outcome.removed_count;
+            outcome.freed_bytes += size;
+            continue;
+        }
+
         const auto entry = quarantine_.take(item.path, item.recommendation_id);
         if (!entry) {
-            // Costuma ser arquivo em uso. Nao e falha do plano, e informacao
-            // para o usuario saber que sobrou menos espaco do que o estimado.
             outcome.skipped.push_back(item.path + " — nao pode ser removido agora");
             continue;
         }

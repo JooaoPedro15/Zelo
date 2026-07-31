@@ -18,6 +18,22 @@ namespace zelo::storage {
 ///
 /// Nada e apagado: os arquivos vao para a quarentena, e a remocao definitiva
 /// acontece depois, por prazo. Ate la, da para desfazer.
+/// O que fazer com os arquivos que saem.
+enum class RemovalMode {
+    /// Apaga de vez, liberando o espaco na hora.
+    ///
+    /// E o modo certo para conteudo que o proprio programa dono recria: guardar
+    /// copia de um cache que volta sozinho ocupa o mesmo espaco que se queria
+    /// liberar, e o botao prometeria algo que nao acontece.
+    Delete,
+
+    /// Move para a quarentena, permitindo devolver depois.
+    ///
+    /// O espaco so e liberado na purga: ate la os arquivos continuam no disco,
+    /// em outra pasta. Vale para conteudo que nao volta sozinho.
+    Quarantine,
+};
+
 class CleanupService {
 public:
     CleanupService(QuarantineStore quarantine, core::ProtectedPaths protected_paths);
@@ -44,7 +60,8 @@ public:
     /// Revalida a protecao de cada caminho agora, sem confiar no plano: entre
     /// montar e executar o disco muda, e o que vale e o estado no momento de
     /// mexer nele.
-    [[nodiscard]] core::CleanupOutcome execute(const core::CleanupPlan& plan) const;
+    [[nodiscard]] core::CleanupOutcome execute(const core::CleanupPlan& plan,
+                                               RemovalMode mode) const;
 
 private:
     QuarantineStore quarantine_;

@@ -54,8 +54,8 @@ struct CatalogEntry {
 /// As pastas de temporarios do sistema nao entram aqui: elas tem coletor
 /// proprio, que sabe descobrir onde o Windows as coloca. Repeti-las produziria
 /// dois achados para os mesmos arquivos e um total somado em dobro.
-const std::array<CatalogEntry, 14>& catalog() {
-    static const std::array<CatalogEntry, 14> entries{{
+const std::array<CatalogEntry, 28>& catalog() {
+    static const std::array<CatalogEntry, 28> entries{{
         // --- Windows ---
         {"windows.update.download", "Instaladores de atualizacao ja aplicados",
          "%SystemRoot%\\SoftwareDistribution\\Download", "Windows Update",
@@ -146,6 +146,88 @@ const std::array<CatalogEntry, 14>& catalog() {
          "%LOCALAPPDATA%\\D3DSCache", "Windows",
          "Shaders compilados que o proprio Windows guarda.",
          "Sao recompilados no proximo uso.", RegenerationCost::NeedsRework, RiskLevel::Green},
+
+        // --- Mais locais do Windows ---
+        {"windows.delivery", "Cache de compartilhamento de atualizacoes",
+         "%SystemRoot%\\SoftwareDistribution\\DeliveryOptimization", "Windows Update",
+         "Pedacos de atualizacao que o Windows guardou para compartilhar com outros computadores "
+         "da rede.",
+         "Nada. Se precisar, o Windows baixa de novo.", RegenerationCost::NeedsDownload,
+         RiskLevel::Green},
+
+        {"windows.logs.cbs", "Registros de manutencao do Windows",
+         "%SystemRoot%\\Logs\\CBS", "Windows",
+         "Anotacoes que o Windows faz enquanto instala e repara os proprios componentes.",
+         "O historico dessas operacoes. Ferramentas de reparo escrevem um registro novo quando "
+         "rodam, entao nada deixa de funcionar.",
+         RegenerationCost::Permanent, RiskLevel::Green},
+
+        {"windows.panther", "Registros de instalacao do Windows",
+         "%SystemRoot%\\Panther", "Windows",
+         "Anotacoes da instalacao ou da ultima grande atualizacao do Windows.",
+         "O historico da instalacao. Util para investigar um problema de atualizacao; sem "
+         "utilidade no dia a dia.",
+         RegenerationCost::Permanent, RiskLevel::Yellow},
+
+        {"windows.downloaded.installations", "Instaladores antigos do Windows",
+         "%SystemRoot%\\Downloaded Installations", "Windows",
+         "Instaladores que programas deixaram para tras depois de instalados.",
+         "A possibilidade de reparar alguns programas sem baixar o instalador de novo.",
+         RegenerationCost::NeedsDownload, RiskLevel::Yellow},
+
+        {"windows.fontcache", "Cache de fontes",
+         "%SystemRoot%\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache", "Windows",
+         "Fontes ja processadas, guardadas para os textos aparecerem mais rapido.",
+         "As fontes em si continuam instaladas. O sistema refaz o cache sozinho.",
+         RegenerationCost::Free, RiskLevel::Green},
+
+        {"windows.crashdumps", "Relatorios de travamento",
+         "%LOCALAPPDATA%\\CrashDumps", "Windows",
+         "Arquivos que o Windows grava quando um programa fecha sozinho, para analise tecnica.",
+         "O material para investigar travamentos passados. Costumam ser grandes e so servem a "
+         "quem for depurar o programa.",
+         RegenerationCost::Permanent, RiskLevel::Green},
+
+        {"windows.inetcache.low", "Arquivos temporarios de internet",
+         "%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache", "Windows",
+         "Paginas e imagens guardadas por componentes do Windows que abrem conteudo da internet.",
+         "Nada permanente; sao baixados de novo quando preciso.", RegenerationCost::NeedsDownload,
+         RiskLevel::Green},
+
+        // --- Aplicativos comuns ---
+        {"app.discord.cache", "Cache do Discord", "%APPDATA%\\discord\\Cache", "Discord",
+         "Imagens e arquivos que o Discord guardou para carregar mais rapido.",
+         "Nao perde conversa nem configuracao.", RegenerationCost::NeedsDownload, RiskLevel::Green},
+
+        {"app.spotify.cache", "Cache do Spotify", "%LOCALAPPDATA%\\Spotify\\Data", "Spotify",
+         "Musicas guardadas para tocar sem baixar de novo.",
+         "Nao perde playlist nem login. As musicas sao baixadas outra vez ao tocar.",
+         RegenerationCost::NeedsDownload, RiskLevel::Green},
+
+        {"app.teams.cache", "Cache do Teams",
+         "%APPDATA%\\Microsoft\\Teams\\Cache", "Microsoft Teams",
+         "Arquivos que o Teams guardou para abrir mais rapido.",
+         "Nao perde conversa nem configuracao.", RegenerationCost::NeedsDownload, RiskLevel::Green},
+
+        {"dev.gradle", "Cache do Gradle", "%USERPROFILE%\\.gradle\\caches", "Gradle",
+         "Bibliotecas e resultados de compilacao que o Gradle guardou entre projetos.",
+         "Nada permanente. A proxima compilacao baixa e refaz o que precisar, e demora mais.",
+         RegenerationCost::NeedsRework, RiskLevel::Yellow},
+
+        {"dev.nuget", "Cache do NuGet", "%USERPROFILE%\\.nuget\\packages", "NuGet",
+         "Pacotes .NET ja baixados, guardados para nao repetir o download em cada projeto.",
+         "Nada permanente; voltam a ser baixados quando um projeto precisar.",
+         RegenerationCost::NeedsDownload, RiskLevel::Yellow},
+
+        {"dev.cargo", "Cache do Cargo (Rust)", "%USERPROFILE%\\.cargo\\registry", "Cargo",
+         "Copias das bibliotecas Rust ja baixadas.",
+         "Nada permanente; voltam a ser baixadas quando preciso.", RegenerationCost::NeedsDownload,
+         RiskLevel::Yellow},
+
+        {"dev.yarn", "Cache do Yarn", "%LOCALAPPDATA%\\Yarn\\Cache", "Yarn",
+         "Pacotes JavaScript ja baixados pelo Yarn.",
+         "Nada permanente; voltam a ser baixados quando preciso.", RegenerationCost::NeedsDownload,
+         RiskLevel::Green},
     }};
     return entries;
 }
