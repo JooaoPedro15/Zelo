@@ -24,6 +24,23 @@ std::string to_utf8(std::wstring_view text) {
     return result;
 }
 
+std::wstring to_wide(std::string_view text) {
+    if (text.empty()) {
+        return {};
+    }
+
+    const int size = ::MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()),
+                                           nullptr, 0);
+    if (size <= 0) {
+        return {};
+    }
+
+    std::wstring result(static_cast<std::size_t>(size), L'\0');
+    ::MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), result.data(),
+                          size);
+    return result;
+}
+
 std::size_t find_ignoring_case(std::string_view haystack, std::string_view needle) {
     if (needle.empty()) {
         return 0;

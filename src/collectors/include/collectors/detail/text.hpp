@@ -9,6 +9,9 @@ namespace zelo::collectors::detail {
 /// travessia dessa fronteira passa por aqui.
 [[nodiscard]] std::string to_utf8(std::wstring_view text);
 
+/// Converte de UTF-8 para o formato que as APIs do Windows esperam.
+[[nodiscard]] std::wstring to_wide(std::string_view text);
+
 /// Compara ignorando caixa, para casar nome de programa e caminho contra as
 /// listas de reconhecimento.
 [[nodiscard]] bool contains_ignoring_case(std::string_view haystack, std::string_view needle);

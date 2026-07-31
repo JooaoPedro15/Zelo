@@ -25,6 +25,8 @@ add_library(zelo_collectors STATIC
     include/collectors/security_collector.hpp
     disk_collector.cpp
     include/collectors/disk_collector.hpp
+    known_locations.cpp
+    include/collectors/known_locations.hpp
     event_log_parsing.cpp
     include/collectors/event_log_parsing.hpp
     detail/text.cpp

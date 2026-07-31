@@ -45,6 +45,7 @@ SystemSnapshot healthy_snapshot() {
                                  .size_bytes = 500 * kGigabyte,
                                  .health_status = "Healthy"}}};
     snapshot.integrity = {.available = true, .window_days = 30};
+    snapshot.reclaimable = {.available = true, .locations = {}};
 
     return snapshot;
 }
@@ -113,6 +114,6 @@ TEST_CASE("o que nao pode ser observado e declarado", "[quick_analysis]") {
     CHECK(result.recommendations.empty());
     CHECK(result.health.overall() == 100);
 
-    // Nove areas observaveis, todas declaradas como nao observadas.
-    CHECK(result.unavailable.size() == 9);
+    // Dez areas observaveis, todas declaradas como nao observadas.
+    CHECK(result.unavailable.size() == 10);
 }

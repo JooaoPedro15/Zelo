@@ -6,6 +6,7 @@
 #include "core/rules/low_free_space_rule.hpp"
 #include "core/rules/low_memory_rule.hpp"
 #include "core/rules/pending_reboot_rule.hpp"
+#include "core/rules/reclaimable_space_rule.hpp"
 #include "core/rules/recurring_app_failures_rule.hpp"
 #include "core/rules/too_many_startup_items_rule.hpp"
 #include "core/rules/windows_integrity_rule.hpp"
@@ -49,6 +50,7 @@ QuickAnalysis QuickAnalysis::with_default_rules() {
         std::make_shared<const DiskHealthRule>(),
         std::make_shared<const WindowsIntegrityRule>(),
         std::make_shared<const FilesystemCorruptionRule>(),
+        std::make_shared<const ReclaimableSpaceRule>(),
     }};
 }
 
@@ -65,9 +67,14 @@ AnalysisResult QuickAnalysis::run(const SystemSnapshot& snapshot) const {
                 continue;
             }
 
-            deductions.push_back(HealthDeduction{recommendation.health_category,
-                                                 deduction_for(recommendation.severity),
-                                                 recommendation.title});
+            // Oportunidade nao desconta: espaco que da para liberar nao e
+            // defeito, e o disco cheio de verdade ja e pontuado por conta
+            // propria.
+            if (recommendation.counts_against_health) {
+                deductions.push_back(HealthDeduction{recommendation.health_category,
+                                                     deduction_for(recommendation.severity),
+                                                     recommendation.title});
+            }
             result.recommendations.push_back(std::move(recommendation));
         }
     }
@@ -98,6 +105,9 @@ AnalysisResult QuickAnalysis::run(const SystemSnapshot& snapshot) const {
     }
     if (!snapshot.integrity.available) {
         result.unavailable.emplace_back("integridade do Windows");
+    }
+    if (!snapshot.reclaimable.available) {
+        result.unavailable.emplace_back("espaco recuperavel em locais conhecidos");
     }
 
     result.health = HealthScore::from_deductions(std::move(deductions));

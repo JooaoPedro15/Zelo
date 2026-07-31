@@ -50,6 +50,15 @@ struct Recommendation {
     HealthCategory health_category = HealthCategory::Storage;
 
     Severity severity = Severity::Info;
+
+    /// Se este achado desconta da pontuacao de saude.
+    ///
+    /// Falso para oportunidades: espaco que da para liberar nao e defeito. Ter
+    /// dez giga de cache de pacotes nao deixa o computador pior — o cache existe
+    /// para acelerar o trabalho. Descontar por isso puniria o usuario por algo
+    /// que esta funcionando como deveria, e ainda contaria duas vezes, ja que o
+    /// disco cheio de verdade ja e pontuado por conta propria.
+    bool counts_against_health = true;
     RiskLevel risk = RiskLevel::Red;
     Confidence confidence;
 

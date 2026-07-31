@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/models/known_location.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -188,6 +190,7 @@ struct SystemSnapshot {
     SecurityInfo security;
     DisksInfo disks;
     IntegrityInfo integrity;
+    ReclaimableInfo reclaimable;
 };
 
 }
