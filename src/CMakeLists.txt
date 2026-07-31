@@ -3,6 +3,7 @@ add_subdirectory(collectors)
 add_subdirectory(scanner)
 add_subdirectory(commands)
 add_subdirectory(storage)
+add_subdirectory(monitor)
 add_subdirectory(ui)
 
 # WIN32: abrir o programa nao deve mostrar uma janela de console preta ao lado

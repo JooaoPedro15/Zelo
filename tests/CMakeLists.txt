@@ -1,4 +1,5 @@
 add_executable(zelo_tests
+    qt_environment.cpp
     smoke/modules_smoke_test.cpp
     core/protected_paths_test.cpp
     core/risk_classifier_test.cpp
@@ -23,6 +24,7 @@ add_executable(zelo_tests
     storage/logging_test.cpp
     storage/quarantine_store_test.cpp
     storage/cleanup_service_test.cpp
+    monitor/snapshot_store_test.cpp
     ui/presentation_test.cpp
 )
 
@@ -33,10 +35,14 @@ target_link_libraries(zelo_tests PRIVATE
     zelo_commands
     zelo_storage
     zelo_ui
+    zelo_monitor
     zelo_warnings
     spdlog::spdlog
     zelo_static_runtime
-    Catch2::Catch2WithMain
+    # Sem WithMain: os testes tem entrada propria, que cria a instancia de
+    # aplicativo Qt exigida para carregar o driver de banco.
+    Catch2::Catch2
+    Qt6::Core
 )
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
