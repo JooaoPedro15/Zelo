@@ -16,3 +16,6 @@ CMakeLists.txt.user*
 
 # aqtinstall
 aqtinstall.log
+
+# Pasta gerada por `cmake --install`
+/dist/
