@@ -21,6 +21,7 @@ add_executable(zelo_tests
     storage/json_codec_test.cpp
     storage/history_store_test.cpp
     storage/logging_test.cpp
+    storage/quarantine_store_test.cpp
     ui/presentation_test.cpp
 )
 
