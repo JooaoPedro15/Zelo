@@ -13,7 +13,10 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QIcon>
 #include <QListWidget>
+#include <QPainter>
+#include <QPixmap>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSplitter>
@@ -33,6 +36,22 @@ QString section(const QString& title, const QString& body) {
         return {};
     }
     return QStringLiteral("<p><b>%1</b><br>%2</p>").arg(title, body);
+}
+
+/// Um circulo colorido para indicar o risco ao lado do titulo do achado.
+QIcon risk_badge(const QColor& color) {
+    constexpr int kSize = 12;
+
+    QPixmap pixmap(kSize, kSize);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(color);
+    painter.setPen(Qt::NoPen);
+    painter.drawEllipse(1, 1, kSize - 2, kSize - 2);
+
+    return QIcon(pixmap);
 }
 
 }
@@ -182,7 +201,12 @@ void MainWindow::show_result(const core::AnalysisResult& result) {
     findings_->clear();
     for (const auto& recommendation : result.recommendations) {
         auto* item = new QListWidgetItem(QString::fromStdString(recommendation.title), findings_);
-        item->setForeground(risk_color(recommendation.risk));
+
+        // O risco vira marcador, nao cor do texto. Pintar o texto o deixava
+        // ilegivel sobre o fundo da selecao, e cor sozinha nao comunica nada a
+        // quem nao distingue verde de vermelho — o rotulo do risco continua
+        // escrito no painel de detalhes e na dica.
+        item->setIcon(risk_badge(risk_color(recommendation.risk)));
         item->setToolTip(QStringLiteral("%1 · confianca %2")
                              .arg(risk_label(recommendation.risk),
                                   confidence_label(recommendation.confidence)));

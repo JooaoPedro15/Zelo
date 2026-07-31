@@ -26,6 +26,11 @@ TEST_CASE("o log e criado no diretorio pedido", "[logging]") {
     CHECK(std::filesystem::exists(file));
     CHECK(file.parent_path() == directory);
     CHECK(file.extension() == ".log");
+
+    // Solta o arquivo antes de remover: enquanto o logger o mantem aberto, o
+    // Windows recusa apagar e o teste deixaria lixo em TEMP.
+    zelo::storage::reset_logging_for_test();
+    std::filesystem::remove_all(directory, error);
 }
 
 // O perfil de quem usa o Zelo costuma ter acento — "C:\Users\João". O %TEMP%
@@ -48,6 +53,7 @@ TEST_CASE("o log funciona em caminho com acento", "[logging]") {
     CHECK(std::filesystem::exists(current_log_file()));
     CHECK(std::filesystem::file_size(current_log_file(), error) > 0);
 
+    zelo::storage::reset_logging_for_test();
     std::filesystem::remove_all(directory, error);
 }
 
