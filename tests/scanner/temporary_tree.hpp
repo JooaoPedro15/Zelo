@@ -31,6 +31,19 @@ public:
     /// recusa (o teste entao se declara ignorado em vez de falhar).
     bool add_junction(const std::string& relative, const std::filesystem::path& target);
 
+    /// Cria um segundo nome para o mesmo conteudo no disco. Hard link nao ocupa
+    /// espaco novo: contar os dois inflaria o total.
+    bool add_hard_link(const std::string& relative, const std::filesystem::path& target);
+
+    /// Cria um arquivo esparso: o tamanho declarado e grande, mas quase nada
+    /// esta gravado. E o caso em que tamanho logico e espaco ocupado divergem
+    /// mais.
+    bool add_sparse_file(const std::string& relative, std::uint64_t declared_bytes);
+
+    /// Marca o arquivo como compactado pelo NTFS, para exercitar a diferenca
+    /// entre o tamanho que o arquivo diz ter e o que ele ocupa.
+    bool compress(const std::filesystem::path& path);
+
 private:
     std::filesystem::path root_;
 };

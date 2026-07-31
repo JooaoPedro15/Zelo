@@ -119,6 +119,56 @@ std::filesystem::path TemporaryTree::add_directory(const std::string& relative) 
     return path;
 }
 
+bool TemporaryTree::add_hard_link(const std::string& relative,
+                                  const std::filesystem::path& target) {
+    const std::filesystem::path path = root_ / relative;
+    create_directory_chain(path.parent_path());
+
+    return ::CreateHardLinkW(prefixed(path).c_str(), prefixed(target).c_str(), nullptr) != 0;
+}
+
+bool TemporaryTree::add_sparse_file(const std::string& relative, std::uint64_t declared_bytes) {
+    const std::filesystem::path path = root_ / relative;
+    create_directory_chain(path.parent_path());
+
+    const HANDLE file = ::CreateFileW(prefixed(path).c_str(), GENERIC_WRITE, 0, nullptr,
+                                      CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    DWORD returned = 0;
+    const bool marked = ::DeviceIoControl(file, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &returned,
+                                          nullptr) != 0;
+
+    // Move o fim do arquivo sem gravar nada: o tamanho declarado cresce, o
+    // espaco ocupado nao.
+    LARGE_INTEGER size{};
+    size.QuadPart = static_cast<LONGLONG>(declared_bytes);
+    const bool sized = ::SetFilePointerEx(file, size, nullptr, FILE_BEGIN) != 0 &&
+                       ::SetEndOfFile(file) != 0;
+
+    ::CloseHandle(file);
+    return marked && sized;
+}
+
+bool TemporaryTree::compress(const std::filesystem::path& path) {
+    const HANDLE file =
+        ::CreateFileW(prefixed(path).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
+                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    USHORT format = COMPRESSION_FORMAT_DEFAULT;
+    DWORD returned = 0;
+    const bool ok = ::DeviceIoControl(file, FSCTL_SET_COMPRESSION, &format, sizeof(format), nullptr,
+                                      0, &returned, nullptr) != 0;
+
+    ::CloseHandle(file);
+    return ok;
+}
+
 bool TemporaryTree::add_junction(const std::string& relative, const std::filesystem::path& target) {
     const std::filesystem::path path = root_ / relative;
     create_directory_chain(path.parent_path());

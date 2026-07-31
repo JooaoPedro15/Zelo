@@ -31,6 +31,83 @@ TEST_CASE("varredura soma exatamente o tamanho de uma arvore conhecida", "[scann
     CHECK(result.skipped_count == 0);
 }
 
+// Hard link e um segundo nome para o mesmo conteudo. Somar os dois faria o
+// scanner relatar o dobro do espaco que existe de fato no disco.
+TEST_CASE("hard link nao e contado duas vezes", "[scanner]") {
+    TemporaryTree tree;
+
+    // Acima do limite em que o scanner confere identidade — abaixo dele o
+    // erro seria de kilobytes e nao compensaria abrir cada arquivo.
+    const auto original = tree.add_file("dados.bin", 2 * 1024 * kKilobyte);
+
+    if (!tree.add_hard_link("copia.bin", original)) {
+        SUCCEED("o sistema recusou criar hard link; teste ignorado");
+        return;
+    }
+
+    const StorageScanner scanner;
+    const ScanResult result = scanner.scan(tree.root());
+
+    // Dois nomes aparecem na varredura, mas o espaco ocupado e de um so.
+    CHECK(result.file_count == 2);
+    CHECK(result.hard_link_duplicates == 1);
+    CHECK(result.allocated_bytes < 3 * 1024 * kKilobyte);
+    CHECK(result.total_bytes == 4 * 1024 * kKilobyte);
+}
+
+// Arquivo esparso declara um tamanho grande e ocupa quase nada. Usar o tamanho
+// declarado prometeria liberar espaco que nao existe.
+TEST_CASE("arquivo esparso separa tamanho declarado de espaco ocupado", "[scanner]") {
+    TemporaryTree tree;
+
+    if (!tree.add_sparse_file("esparso.bin", 8 * 1024 * kKilobyte)) {
+        SUCCEED("o sistema de arquivos nao suporta arquivo esparso; teste ignorado");
+        return;
+    }
+
+    const StorageScanner scanner;
+    const ScanResult result = scanner.scan(tree.root());
+
+    CHECK(result.total_bytes >= 8 * 1024 * kKilobyte);
+    CHECK(result.allocated_bytes < result.total_bytes / 2);
+}
+
+TEST_CASE("espaco ocupado considera o tamanho do cluster", "[scanner]") {
+    TemporaryTree tree;
+
+    // Dez arquivos minusculos: cada um ocupa um cluster inteiro, entao o espaco
+    // ocupado e bem maior que a soma dos tamanhos.
+    for (int index = 0; index < 10; ++index) {
+        tree.add_file("mini/" + std::to_string(index) + ".txt", 10);
+    }
+
+    const StorageScanner scanner;
+    const ScanResult result = scanner.scan(tree.root());
+
+    CHECK(result.total_bytes == 100);
+    CHECK(result.allocated_bytes > result.total_bytes);
+}
+
+TEST_CASE("as datas do arquivo sao coletadas", "[scanner]") {
+    TemporaryTree tree;
+    tree.add_file("grande.bin", 200 * kKilobyte);
+
+    const StorageScanner scanner;
+    const ScanResult result = scanner.scan(tree.root());
+
+    REQUIRE(result.largest_files.size() == 1);
+
+    const auto& file = result.largest_files.front();
+    CHECK_FALSE(file.created_at.empty());
+    CHECK_FALSE(file.modified_at.empty());
+
+    // O horario do ultimo acesso so vale quando o Windows esta registrando isso;
+    // exibi-lo sem a ressalva levaria o usuario a apagar por dado errado.
+    if (file.last_access_reliable) {
+        CHECK_FALSE(file.last_access_at.empty());
+    }
+}
+
 TEST_CASE("varredura de arvore vazia devolve zero sem falhar", "[scanner]") {
     TemporaryTree tree;
 
