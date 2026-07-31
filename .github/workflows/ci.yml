@@ -8,6 +8,10 @@ on:
 jobs:
   build-test:
     runs-on: windows-latest
+
+    env:
+      QT_ROOT: C:/Qt/6.8.3/mingw_64
+
     steps:
       - uses: actions/checkout@v4
 
@@ -32,20 +36,22 @@ jobs:
           python -m aqt install-tool windows desktop tools_cmake -O C:/Qt
           python -m aqt install-tool windows desktop tools_ninja -O C:/Qt
 
-      - name: Configurar
+      # Mesma preparacao descrita no README: as ferramentas no PATH e o Qt em
+      # QT_ROOT. O CI usa exatamente o caminho que qualquer pessoa segue, entao
+      # uma instrucao quebrada quebra o CI junto.
+      - name: Preparar ambiente
         shell: pwsh
-        run: >
-          C:/Qt/Tools/CMake_64/bin/cmake.exe -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_C_COMPILER=C:/Qt/Tools/mingw1310_64/bin/gcc.exe
-          -DCMAKE_CXX_COMPILER=C:/Qt/Tools/mingw1310_64/bin/g++.exe
-          -DCMAKE_MAKE_PROGRAM=C:/Qt/Tools/Ninja/ninja.exe
-          -DCMAKE_PREFIX_PATH=C:/Qt/6.8.3/mingw_64
+        run: |
+          "C:/Qt/Tools/CMake_64/bin" >> $env:GITHUB_PATH
+          "C:/Qt/Tools/Ninja" >> $env:GITHUB_PATH
+          "C:/Qt/6.8.3/mingw_64/bin" >> $env:GITHUB_PATH
+          "C:/Qt/Tools/mingw1310_64/bin" >> $env:GITHUB_PATH
+
+      - name: Configurar
+        run: cmake --preset release
 
       - name: Compilar
-        shell: pwsh
-        run: C:/Qt/Tools/CMake_64/bin/cmake.exe --build build
+        run: cmake --build --preset release
 
       - name: Testar
-        shell: pwsh
-        run: C:/Qt/Tools/CMake_64/bin/ctest.exe --test-dir build --output-on-failure
+        run: ctest --preset release

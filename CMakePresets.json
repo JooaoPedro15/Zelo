@@ -7,9 +7,8 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_CXX_COMPILER": "D:/Qt/Tools/mingw1310_64/bin/g++.exe",
-                "CMAKE_MAKE_PROGRAM": "D:/Qt/Tools/Ninja/ninja.exe",
-                "CMAKE_PREFIX_PATH": "D:/Qt/6.8.3/mingw_64"
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_PREFIX_PATH": "$penv{QT_ROOT}"
             }
         },
         {
@@ -43,6 +42,13 @@
         {
             "name": "debug",
             "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
             "output": {
                 "outputOnFailure": true
             }

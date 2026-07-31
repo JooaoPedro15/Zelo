@@ -98,12 +98,16 @@ python -m aqt install-tool windows desktop tools_cmake -O C:/Qt
 python -m aqt install-tool windows desktop tools_ninja -O C:/Qt
 ```
 
-O `aqtinstall` não altera o PATH, então adicione as ferramentas antes de compilar. No
+O `aqtinstall` não altera o PATH, então aponte as ferramentas antes de compilar. No
 PowerShell, valendo para a sessão atual:
 
 ```powershell
 $env:PATH = "C:\Qt\Tools\CMake_64\bin;C:\Qt\Tools\Ninja;C:\Qt\6.8.3\mingw_64\bin;C:\Qt\Tools\mingw1310_64\bin;$env:PATH"
+$env:QT_ROOT = "C:/Qt/6.8.3/mingw_64"
 ```
+
+Os presets leem `QT_ROOT` do ambiente. Assim o repositório não carrega caminho de
+máquina nenhuma, e quem instalou o Qt em outro lugar só ajusta essas duas linhas.
 
 Compilar e testar:
 

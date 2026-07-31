@@ -1,21 +1,36 @@
 # Build
 build/
+out/
 .cache/
 
-# CMake local
+# Presets com caminhos desta maquina. O repositorio nao carrega caminho de
+# maquina nenhuma: os presets versionados leem QT_ROOT do ambiente.
 CMakeUserPresets.json
 
-# IDEs
+# Pasta gerada por `cmake --install`
+/dist/
+
+# IDEs e editores
+.vs/
 .vscode/
 .idea/
 *.user
 CMakeLists.txt.user*
-
-# Qt Creator
 *.autosave
 
-# aqtinstall
+# Ferramentas
 aqtinstall.log
+compile_commands.json
 
-# Pasta gerada por `cmake --install`
-/dist/
+# Binarios e sobras de build fora da pasta build/
+*.exe
+*.dll
+*.obj
+*.o
+*.a
+*.pdb
+*.ilk
+
+# Sistema
+Thumbs.db
+desktop.ini
