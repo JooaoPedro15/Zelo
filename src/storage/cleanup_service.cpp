@@ -1,8 +1,10 @@
 #include "storage/cleanup_service.hpp"
 
+#include <scanner/storage_scanner.hpp>
 #include <spdlog/spdlog.h>
 
 #include <filesystem>
+#include <limits>
 #include <utility>
 
 namespace zelo::storage {
@@ -41,6 +43,44 @@ core::CleanupPlan CleanupService::plan(const std::vector<std::string>& paths,
     }
 
     return plan;
+}
+
+core::CleanupPlan CleanupService::plan_folder(const std::string& folder,
+                                              const std::string& recommendation_id) const {
+    core::CleanupPlan plan;
+
+    if (protected_paths_.is_protected(folder)) {
+        plan.rejected.push_back(folder + " — caminho protegido");
+        return plan;
+    }
+
+    std::error_code error;
+    if (!std::filesystem::is_directory(folder, error)) {
+        plan.rejected.push_back(folder + " — pasta nao encontrada");
+        return plan;
+    }
+
+    // O scanner ja resolve o que importa aqui: nao atravessa links, aguenta
+    // caminho longo e nao cai por causa de uma subpasta sem permissao.
+    const scanner::StorageScanner storage_scanner{
+        scanner::ScanOptions{.largest_files_kept = std::numeric_limits<std::size_t>::max(),
+                             .rollup_depth = 0}};
+
+    const auto result = storage_scanner.scan(folder);
+    if (!result.completed) {
+        plan.rejected.push_back(folder + " — a varredura nao pode ser concluida");
+        return plan;
+    }
+
+    std::vector<std::string> files;
+    files.reserve(result.largest_files.size());
+    for (const auto& file : result.largest_files) {
+        files.push_back(file.path);
+    }
+
+    core::CleanupPlan expanded = this->plan(files, recommendation_id);
+    expanded.rejected.insert(expanded.rejected.end(), plan.rejected.begin(), plan.rejected.end());
+    return expanded;
 }
 
 core::CleanupOutcome CleanupService::execute(const core::CleanupPlan& plan) const {

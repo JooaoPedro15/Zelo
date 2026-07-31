@@ -1,3 +1,4 @@
+#include <collectors/known_locations.hpp>
 #include <collectors/system_paths.hpp>
 #include <collectors/temporary_files_collector.hpp>
 #include <core/rules/format.hpp>
@@ -27,47 +28,58 @@ int simulate_cleanup() {
     const auto protected_paths =
         zelo::collectors::build_protected_paths(zelo::collectors::collect_system_paths());
 
-    const zelo::collectors::TemporaryFilesCollector collector{protected_paths};
-
-    out << "Pastas de temporarios consideradas:\n";
-    for (const auto& folder : collector.folders()) {
-        out << "  " << QString::fromStdString(folder.string()) << "\n";
-    }
-
-    std::vector<std::string> paths;
-    for (const auto& file : collector.list_files()) {
-        paths.push_back(file.string());
-    }
-
     const zelo::storage::QuarantineStore quarantine{
         zelo::storage::default_data_directory() / "quarentena", protected_paths};
     const zelo::storage::CleanupService cleanup{quarantine, protected_paths};
 
-    const auto plan = cleanup.plan(paths, "storage.excessive-temporary-files");
+    const zelo::collectors::ReclaimableCollector reclaimable{protected_paths};
 
-    out << "\nSeriam removidos " << plan.items.size() << " arquivos, liberando "
-        << QString::fromStdString(zelo::core::format_bytes(plan.total_bytes())) << ".\n";
+    std::uint64_t grand_total = 0;
+    std::size_t grand_count = 0;
 
-    out << "\nOs dez maiores:\n";
-    auto largest = plan.items;
-    std::sort(largest.begin(), largest.end(),
-              [](const zelo::core::CleanupItem& left, const zelo::core::CleanupItem& right) {
-                  return left.size_bytes > right.size_bytes;
-              });
-    for (std::size_t index = 0; index < std::min<std::size_t>(10, largest.size()); ++index) {
-        out << "  " << QString::fromStdString(zelo::core::format_bytes(largest[index].size_bytes))
-            << "\t" << QString::fromStdString(largest[index].path) << "\n";
-    }
-
-    if (!plan.rejected.empty()) {
-        out << "\nRecusados (" << plan.rejected.size() << "):\n";
-        for (std::size_t index = 0; index < std::min<std::size_t>(5, plan.rejected.size());
-             ++index) {
-            out << "  " << QString::fromStdString(plan.rejected[index]) << "\n";
+    for (const auto& location : reclaimable.collect().locations) {
+        if (!location.present || location.size_bytes == 0) {
+            continue;
         }
+
+        const auto plan = cleanup.plan_folder(location.path, location.id);
+        if (plan.empty()) {
+            continue;
+        }
+
+        grand_total += plan.total_bytes();
+        grand_count += plan.items.size();
+
+        out << "\n" << QString::fromStdString(location.display_name) << "\n"
+            << "  " << QString::fromStdString(location.path) << "\n"
+            << "  " << plan.items.size() << " arquivos, "
+            << QString::fromStdString(zelo::core::format_bytes(plan.total_bytes())) << "\n"
+            << "  o que voce perde: " << QString::fromStdString(location.what_you_lose) << "\n";
     }
 
-    out << "\nNenhum arquivo foi removido: isto e apenas uma simulacao.\n";
+    // Os temporarios vem de um coletor proprio, que ja sabe quais pastas o
+    // sistema usa para isso.
+    const zelo::collectors::TemporaryFilesCollector temporary{protected_paths};
+
+    std::vector<std::string> temporary_paths;
+    for (const auto& file : temporary.list_files()) {
+        temporary_paths.push_back(file.string());
+    }
+
+    if (const auto plan = cleanup.plan(temporary_paths, "storage.excessive-temporary-files");
+        !plan.empty()) {
+        grand_total += plan.total_bytes();
+        grand_count += plan.items.size();
+
+        out << "\nArquivos temporarios do sistema\n"
+            << "  " << plan.items.size() << " arquivos, "
+            << QString::fromStdString(zelo::core::format_bytes(plan.total_bytes())) << "\n";
+    }
+
+    out << "\n----------------------------------------\n"
+        << "Total: " << grand_count << " arquivos, "
+        << QString::fromStdString(zelo::core::format_bytes(grand_total)) << "\n"
+        << "\nNenhum arquivo foi removido: isto e apenas uma simulacao.\n";
     return 0;
 }
 

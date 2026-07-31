@@ -37,9 +37,12 @@ private:
     /// Monta o plano, mostra exatamente o que sairia e so executa se o usuario
     /// confirmar. A confirmacao e sempre explicita: limpar apaga arquivo, ainda
     /// que a quarentena permita voltar atras.
-    void clean_temporary_files();
+    void clean_selected_finding();
 
     void update_action_button(int index);
+
+    /// O achado selecionado, ou nulo quando nao ha selecao.
+    [[nodiscard]] const core::Recommendation* selected_recommendation() const;
 
     QLabel* score_label_ = nullptr;
     QLabel* summary_label_ = nullptr;

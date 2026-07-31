@@ -51,20 +51,12 @@ struct CatalogEntry {
 /// Cada entrada foi escrita olhando o que aquela pasta realmente guarda. Onde
 /// nao houve certeza sobre o conteudo, a entrada simplesmente nao existe: e
 /// melhor deixar espaco na mesa do que sugerir apagar algo sem saber o que e.
-const std::array<CatalogEntry, 16>& catalog() {
-    static const std::array<CatalogEntry, 16> entries{{
-        // --- Temporarios do sistema ---
-        {"temp.user", "Arquivos temporarios", "%TEMP%", "Windows",
-         "Arquivos que programas criam para uso momentaneo e nem sempre apagam depois. "
-         "Instaladores ja usados, logs e sobras de operacoes concluidas.",
-         "Nada que voce use. Programas abertos podem estar usando alguns deles, e esses ficam "
-         "onde estao.",
-         RegenerationCost::Free, RiskLevel::Green},
-
-        {"temp.windows", "Temporarios do Windows", "%SystemRoot%\\Temp", "Windows",
-         "A mesma coisa, na pasta que o proprio Windows usa.",
-         "Nada que voce use.", RegenerationCost::Free, RiskLevel::Green},
-
+/// As pastas de temporarios do sistema nao entram aqui: elas tem coletor
+/// proprio, que sabe descobrir onde o Windows as coloca. Repeti-las produziria
+/// dois achados para os mesmos arquivos e um total somado em dobro.
+const std::array<CatalogEntry, 14>& catalog() {
+    static const std::array<CatalogEntry, 14> entries{{
+        // --- Windows ---
         {"windows.update.download", "Instaladores de atualizacao ja aplicados",
          "%SystemRoot%\\SoftwareDistribution\\Download", "Windows Update",
          "Os pacotes que o Windows baixou para se atualizar. Depois de instalados, ficam ali sem "

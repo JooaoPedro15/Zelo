@@ -28,6 +28,17 @@ public:
     [[nodiscard]] core::CleanupPlan plan(const std::vector<std::string>& paths,
                                          const std::string& recommendation_id) const;
 
+    /// Monta o plano com todo o conteudo de uma pasta, recursivamente.
+    ///
+    /// A pasta em si nao entra: so os arquivos dentro dela. Remover a pasta
+    /// faria o programa dono falhar ao procura-la, enquanto esvazia-la e o que
+    /// ele espera de um cache limpo.
+    ///
+    /// A varredura nao atravessa links, entao limpar um cache nao alcanca o
+    /// destino de um atalho que por acaso esteja la dentro.
+    [[nodiscard]] core::CleanupPlan plan_folder(const std::string& folder,
+                                                const std::string& recommendation_id) const;
+
     /// Move para a quarentena o que o plano listou.
     ///
     /// Revalida a protecao de cada caminho agora, sem confiar no plano: entre

@@ -23,6 +23,7 @@ target_link_libraries(zelo_storage
         zelo_core
         nlohmann_json::nlohmann_json
     PRIVATE
+        zelo_scanner
         spdlog::spdlog
         zelo_warnings
 )

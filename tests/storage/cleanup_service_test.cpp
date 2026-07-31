@@ -151,6 +151,66 @@ TEST_CASE("executar revalida a protecao, nao confia no plano", "[cleanup]") {
     CHECK(std::filesystem::exists(arquivo));
 }
 
+TEST_CASE("plano de pasta inclui tudo que esta dentro dela", "[cleanup]") {
+    const Sandbox sandbox;
+    const CleanupService service{sandbox.quarantine(), sandbox.paths()};
+
+    sandbox.make_file("cache/a.bin", 100);
+    sandbox.make_file("cache/sub/b.bin", 200);
+    sandbox.make_file("cache/sub/mais/c.bin", 300);
+    sandbox.make_file("fora/d.bin", 999);
+
+    const CleanupPlan plan =
+        service.plan_folder((sandbox.root() / "cache").string(), "cache-de-teste");
+
+    CHECK(plan.items.size() == 3);
+    CHECK(plan.total_bytes() == 600);
+
+    for (const auto& item : plan.items) {
+        CHECK(item.path.find("fora") == std::string::npos);
+    }
+}
+
+// A pasta continua existindo depois da limpeza. Removida, o programa dono
+// poderia falhar ao procura-la em vez de simplesmente recria-la.
+TEST_CASE("limpar uma pasta esvazia o conteudo mas mantem a pasta", "[cleanup]") {
+    const Sandbox sandbox;
+    const CleanupService service{sandbox.quarantine(), sandbox.paths()};
+
+    const auto arquivo = sandbox.make_file("cache/a.bin", 100);
+    const auto pasta = sandbox.root() / "cache";
+
+    const auto outcome = service.execute(service.plan_folder(pasta.string(), "cache-de-teste"));
+
+    CHECK(outcome.removed_count == 1);
+    CHECK_FALSE(std::filesystem::exists(arquivo));
+    CHECK(std::filesystem::is_directory(pasta));
+}
+
+TEST_CASE("plano de pasta protegida sai vazio", "[cleanup]") {
+    const Sandbox sandbox;
+    const CleanupService service{sandbox.quarantine(), sandbox.paths()};
+
+    sandbox.make_file("sistema/importante.dll", 100);
+
+    const CleanupPlan plan =
+        service.plan_folder((sandbox.root() / "sistema").string(), "nao-deveria-acontecer");
+
+    CHECK(plan.items.empty());
+    CHECK_FALSE(plan.rejected.empty());
+    CHECK(std::filesystem::exists(sandbox.root() / "sistema" / "importante.dll"));
+}
+
+TEST_CASE("plano de pasta inexistente sai vazio sem quebrar", "[cleanup]") {
+    const Sandbox sandbox;
+    const CleanupService service{sandbox.quarantine(), sandbox.paths()};
+
+    const CleanupPlan plan =
+        service.plan_folder((sandbox.root() / "nao-existe").string(), "teste");
+
+    CHECK(plan.items.empty());
+}
+
 TEST_CASE("plano vazio nao faz nada", "[cleanup]") {
     const Sandbox sandbox;
     const CleanupService service{sandbox.quarantine(), sandbox.paths()};

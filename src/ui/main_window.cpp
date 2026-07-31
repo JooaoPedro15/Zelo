@@ -122,7 +122,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     // existe nenhuma que o aplicativo deva tomar sozinho.
     action_button_ = new QPushButton(findings_box);
     action_button_->setVisible(false);
-    connect(action_button_, &QPushButton::clicked, this, &MainWindow::clean_temporary_files);
+    connect(action_button_, &QPushButton::clicked, this, &MainWindow::clean_selected_finding);
     findings_layout->addWidget(action_button_);
 
     auto* details_box = new QGroupBox(QStringLiteral("Detalhes"), splitter);
@@ -185,19 +185,47 @@ void MainWindow::start_analysis() {
     analyze_button_->setText(QStringLiteral("Analisar de novo"));
 }
 
+const core::Recommendation* MainWindow::selected_recommendation() const {
+    const int index = findings_->currentRow();
+    if (index < 0 || index >= static_cast<int>(result_.recommendations.size())) {
+        return nullptr;
+    }
+    return &result_.recommendations.at(static_cast<std::size_t>(index));
+}
+
 void MainWindow::update_action_button(int index) {
-    const bool cleanable =
-        index >= 0 && index < static_cast<int>(result_.recommendations.size()) &&
-        result_.recommendations.at(static_cast<std::size_t>(index)).rule_id ==
-            "storage.excessive-temporary-files";
+    const core::Recommendation* recommendation =
+        index >= 0 && index < static_cast<int>(result_.recommendations.size())
+            ? &result_.recommendations.at(static_cast<std::size_t>(index))
+            : nullptr;
+
+    // O botao aparece nos achados cuja acao o Zelo sabe executar com seguranca
+    // e desfazer. Nos demais fica escondido: botao cinza sugere que existe uma
+    // acao quando, para a maioria dos achados, nao existe nenhuma que o
+    // aplicativo deva tomar sozinho.
+    const bool cleanable = recommendation != nullptr &&
+                           (recommendation->rule_id == "storage.excessive-temporary-files" ||
+                            recommendation->rule_id == "storage.reclaimable-location");
 
     action_button_->setVisible(cleanable);
     if (cleanable) {
-        action_button_->setText(QStringLiteral("Limpar arquivos temporarios..."));
+        action_button_->setText(
+            QStringLiteral("Limpar — libera %1")
+                .arg(QString::fromStdString(core::format_bytes(recommendation->reclaimable_bytes))));
     }
 }
 
-void MainWindow::clean_temporary_files() {
+void MainWindow::clean_selected_finding() {
+    const core::Recommendation* recommendation = selected_recommendation();
+    if (recommendation == nullptr) {
+        return;
+    }
+
+    const std::string rule_id = recommendation->rule_id;
+    const std::string title = recommendation->title;
+    const std::string limitations = recommendation->limitations;
+    const std::vector<std::string> affected = recommendation->affected_paths;
+
     action_button_->setEnabled(false);
     action_button_->setText(QStringLiteral("Verificando o que pode ser removido..."));
     QApplication::processEvents();
@@ -205,18 +233,29 @@ void MainWindow::clean_temporary_files() {
     const auto protected_paths =
         collectors::build_protected_paths(collectors::collect_system_paths());
 
-    const collectors::TemporaryFilesCollector collector{protected_paths};
-
-    std::vector<std::string> paths;
-    for (const auto& file : collector.list_files()) {
-        paths.push_back(file.string());
-    }
-
     const storage::QuarantineStore quarantine{storage::default_data_directory() / "quarentena",
                                               protected_paths};
     const storage::CleanupService cleanup{quarantine, protected_paths};
 
-    const core::CleanupPlan plan = cleanup.plan(paths, "storage.excessive-temporary-files");
+    core::CleanupPlan plan;
+    if (rule_id == "storage.excessive-temporary-files") {
+        const collectors::TemporaryFilesCollector collector{protected_paths};
+
+        std::vector<std::string> paths;
+        for (const auto& file : collector.list_files()) {
+            paths.push_back(file.string());
+        }
+        plan = cleanup.plan(paths, rule_id);
+    } else {
+        // Locais do catalogo sao pastas: o conteudo e levantado agora, para
+        // refletir o disco no momento de agir.
+        for (const auto& folder : affected) {
+            core::CleanupPlan folder_plan = cleanup.plan_folder(folder, rule_id);
+            plan.items.insert(plan.items.end(), folder_plan.items.begin(), folder_plan.items.end());
+            plan.rejected.insert(plan.rejected.end(), folder_plan.rejected.begin(),
+                                 folder_plan.rejected.end());
+        }
+    }
 
     action_button_->setEnabled(true);
     update_action_button(findings_->currentRow());
@@ -228,20 +267,26 @@ void MainWindow::clean_temporary_files() {
         return;
     }
 
-    // A confirmacao mostra numero e tamanho de verdade, e diz para onde os
-    // arquivos vao. Aprovar "limpar temporarios" sem saber quanto sai nao e
-    // consentimento informado.
+    // A confirmacao mostra numero e tamanho de verdade e repete o que se perde
+    // naquele local especifico. Aprovar "limpar" sem saber quanto sai e o que
+    // fica para tras nao e consentimento informado.
     QMessageBox confirmation(this);
     confirmation.setWindowTitle(QStringLiteral("Confirmar limpeza"));
     confirmation.setIcon(QMessageBox::Question);
-    confirmation.setText(QStringLiteral("Remover %1 arquivos temporarios, liberando cerca de %2?")
+    confirmation.setText(QStringLiteral("Remover %1 arquivos, liberando cerca de %2?")
                              .arg(plan.items.size())
                              .arg(QString::fromStdString(core::format_bytes(plan.total_bytes()))));
-    confirmation.setInformativeText(
-        QStringLiteral("Os arquivos vao para a quarentena do Zelo, nao sao apagados agora. "
-                       "Se algo fizer falta, da para devolver.\n\n"
-                       "Programas abertos podem estar usando parte deles; esses ficam onde "
-                       "estao e o espaco liberado sera menor que o estimado."));
+
+    QString details = QString::fromStdString(title) + QStringLiteral("\n\n");
+    if (!limitations.empty()) {
+        details += QString::fromStdString(limitations) + QStringLiteral("\n\n");
+    }
+    details += QStringLiteral(
+        "Os arquivos vao para a quarentena do Zelo, nao sao apagados agora. Se algo fizer "
+        "falta, da para devolver.\n\n"
+        "Programas abertos podem estar usando parte deles; esses ficam onde estao e o espaco "
+        "liberado sera menor que o estimado.");
+    confirmation.setInformativeText(details);
 
     auto* confirm = confirmation.addButton(QStringLiteral("Limpar"), QMessageBox::AcceptRole);
     confirmation.addButton(QStringLiteral("Cancelar"), QMessageBox::RejectRole);
