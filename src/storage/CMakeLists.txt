@@ -9,6 +9,8 @@ add_library(zelo_storage STATIC
     include/storage/logging.hpp
     quarantine_store.cpp
     include/storage/quarantine_store.hpp
+    cleanup_service.cpp
+    include/storage/cleanup_service.hpp
 )
 
 target_include_directories(zelo_storage
