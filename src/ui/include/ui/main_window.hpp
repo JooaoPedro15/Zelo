@@ -12,8 +12,10 @@ class QTextBrowser;
 
 namespace zelo::ui {
 
-/// Painel principal. Apresenta o resultado da analise e nada mais: nao coleta,
-/// nao classifica risco e nao executa nenhuma acao sobre o sistema.
+/// Painel principal. Apresenta o resultado da analise e conduz a limpeza.
+///
+/// Nao coleta, nao classifica risco e nao decide o que remover: pede tudo isso
+/// as camadas de baixo. O que ela faz e mostrar, perguntar e relatar.
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
@@ -32,6 +34,13 @@ private:
     void show_result(const core::AnalysisResult& result);
     void show_details(int index);
 
+    /// Monta o plano, mostra exatamente o que sairia e so executa se o usuario
+    /// confirmar. A confirmacao e sempre explicita: limpar apaga arquivo, ainda
+    /// que a quarentena permita voltar atras.
+    void clean_temporary_files();
+
+    void update_action_button(int index);
+
     QLabel* score_label_ = nullptr;
     QLabel* summary_label_ = nullptr;
     QProgressBar* score_bar_ = nullptr;
@@ -39,6 +48,7 @@ private:
     QListWidget* findings_ = nullptr;
     QTextBrowser* details_ = nullptr;
     QPushButton* analyze_button_ = nullptr;
+    QPushButton* action_button_ = nullptr;
 
     core::AnalysisResult result_;
 };

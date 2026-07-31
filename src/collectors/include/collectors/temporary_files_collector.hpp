@@ -25,6 +25,15 @@ public:
 
     bool collect_into(core::SystemSnapshot& snapshot, std::stop_token token = {}) const;
 
+    /// Os arquivos temporarios encontrados agora, para montar um plano de
+    /// limpeza.
+    ///
+    /// Fica separado da coleta de propósito: a analise so precisa do total, e
+    /// guardar milhares de caminhos no historico nao faz sentido. A lista e
+    /// levantada na hora de limpar, entao reflete o disco no momento de agir e
+    /// nao o de minutos atras.
+    [[nodiscard]] std::vector<std::filesystem::path> list_files(std::stop_token token = {}) const;
+
 private:
     core::ProtectedPaths protected_paths_;
 };

@@ -5,13 +5,17 @@ add_subdirectory(commands)
 add_subdirectory(storage)
 add_subdirectory(ui)
 
-qt_add_executable(zelo WIN32
+# Sem WIN32: o executavel precisa de console para `--simular-limpeza` imprimir a
+# lista. O Windows so cria janela para aplicativo GUI quando ele a pede, entao a
+# interface continua abrindo normalmente.
+qt_add_executable(zelo
     main.cpp
 )
 
 target_link_libraries(zelo PRIVATE
     Qt6::Widgets
     zelo_ui
+    zelo_collectors
     zelo_storage
     spdlog::spdlog
     zelo_warnings

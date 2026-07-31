@@ -15,6 +15,11 @@ public:
     /// recomendacao existe para liberar espaco relevante, nao para caçar migalhas.
     static constexpr std::uint64_t kMinimumBytes = 1024ULL * 1024ULL * 1024ULL;
 
+    /// Limite usado quando o disco de sistema esta sem folga. Meio giga nao vale
+    /// a atencao de quem tem centenas livres, mas e decisivo para quem esta
+    /// raspando o fundo — e a essa altura o Windows ja falha em coisas basicas.
+    static constexpr std::uint64_t kMinimumBytesUnderPressure = 100ULL * 1024ULL * 1024ULL;
+
     /// A partir deste volume o acumulo deixa de ser detalhe e vira uma parcela
     /// relevante do disco de quem esta sem espaco.
     static constexpr std::uint64_t kLargeBytes = 10ULL * kMinimumBytes;

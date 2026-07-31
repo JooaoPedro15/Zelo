@@ -109,6 +109,38 @@ TEST_CASE("pouco temporario acumulado nao vira recomendacao", "[rules]") {
 
 // Sem ter conseguido varrer os temporarios, a regra nao pode dizer que esta
 // tudo limpo — nao olhar e diferente de nao encontrar.
+// O que e irrelevante num disco folgado passa a importar num disco apertado.
+// Meio giga de temporario nao vale a atencao de quem tem 400 GB livres, mas e
+// mais da metade do que resta para quem esta com menos de 1 GB.
+TEST_CASE("o limite de temporarios cai quando o disco esta apertado", "[rules]") {
+    const ExcessiveTemporaryFilesRule rule;
+
+    SystemSnapshot snapshot;
+    snapshot.temporary_files = {.available = true, .total_bytes = 550 * kMegabyte, .file_count = 900};
+    snapshot.volumes_available = true;
+
+    SECTION("com disco folgado, meio giga nao vira recomendacao") {
+        snapshot.volumes = {{.letter = "C:",
+                             .total_bytes = 500 * kGigabyte,
+                             .free_bytes = 300 * kGigabyte,
+                             .is_system = true}};
+
+        CHECK(rule.evaluate(snapshot).empty());
+    }
+
+    SECTION("com disco quase cheio, o mesmo volume e recomendado") {
+        snapshot.volumes = {{.letter = "C:",
+                             .total_bytes = 222 * kGigabyte,
+                             .free_bytes = 1 * kGigabyte,
+                             .is_system = true}};
+
+        const auto recommendations = rule.evaluate(snapshot);
+
+        REQUIRE(recommendations.size() == 1);
+        CHECK(recommendations.front().reclaimable_bytes == 550 * kMegabyte);
+    }
+}
+
 TEST_CASE("sem varredura de temporarios a regra nao conclui nada", "[rules]") {
     const ExcessiveTemporaryFilesRule rule;
 

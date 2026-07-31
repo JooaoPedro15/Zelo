@@ -1,8 +1,28 @@
 #include "core/rules/excessive_temporary_files_rule.hpp"
 
 #include "core/rules/format.hpp"
+#include "core/rules/low_free_space_rule.hpp"
 
 namespace zelo::core {
+
+namespace {
+
+/// O disco de sistema esta sem folga? Reaproveita o mesmo limite da regra de
+/// espaco livre, para as duas nao discordarem sobre o que e "apertado".
+bool system_volume_is_tight(const SystemSnapshot& snapshot) {
+    if (!snapshot.volumes_available) {
+        return false;
+    }
+
+    for (const auto& volume : snapshot.volumes) {
+        if (volume.is_system && volume.total_bytes > 0) {
+            return volume.free_ratio() < LowFreeSpaceRule::kLowFreeRatio;
+        }
+    }
+    return false;
+}
+
+}
 
 std::string ExcessiveTemporaryFilesRule::id() const {
     return "storage.excessive-temporary-files";
@@ -14,7 +34,15 @@ int ExcessiveTemporaryFilesRule::version() const {
 
 std::vector<Recommendation> ExcessiveTemporaryFilesRule::evaluate(const SystemSnapshot& snapshot) const {
     const auto& temporary_files = snapshot.temporary_files;
-    if (!temporary_files.available || temporary_files.total_bytes < kMinimumBytes) {
+    if (!temporary_files.available) {
+        return {};
+    }
+
+    const bool disk_under_pressure = system_volume_is_tight(snapshot);
+    const std::uint64_t minimum =
+        disk_under_pressure ? kMinimumBytesUnderPressure : kMinimumBytes;
+
+    if (temporary_files.total_bytes < minimum) {
         return {};
     }
 

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <system_error>
 #include <utility>
 
@@ -72,6 +73,30 @@ std::vector<std::filesystem::path> TemporaryFilesCollector::folders() const {
     }
 
     return folders;
+}
+
+std::vector<std::filesystem::path> TemporaryFilesCollector::list_files(std::stop_token token) const {
+    const scanner::StorageScanner storage_scanner{
+        // Sem limite de retencao: aqui a lista inteira e o produto, nao os
+        // maiores arquivos.
+        scanner::ScanOptions{.largest_files_kept = std::numeric_limits<std::size_t>::max(),
+                             .rollup_depth = 0}};
+
+    std::vector<std::filesystem::path> files;
+    for (const auto& folder : folders()) {
+        const scanner::ScanResult result = storage_scanner.scan(folder, token);
+        if (!result.completed) {
+            // Varredura interrompida: devolver lista parcial faria a limpeza
+            // apagar um subconjunto arbitrario do que o usuario viu.
+            return {};
+        }
+
+        for (const auto& file : result.largest_files) {
+            files.emplace_back(file.path);
+        }
+    }
+
+    return files;
 }
 
 bool TemporaryFilesCollector::collect_into(core::SystemSnapshot& snapshot,

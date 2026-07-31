@@ -3,8 +3,13 @@
 #include "ui/presentation.hpp"
 
 #include <collectors/snapshot_collector.hpp>
+#include <collectors/system_paths.hpp>
+#include <collectors/temporary_files_collector.hpp>
+#include <core/rules/format.hpp>
+#include <storage/cleanup_service.hpp>
 #include <storage/history_store.hpp>
 #include <storage/logging.hpp>
+#include <storage/quarantine_store.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -15,6 +20,7 @@
 #include <QLabel>
 #include <QIcon>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
 #include <QProgressBar>
@@ -107,7 +113,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     auto* findings_layout = new QVBoxLayout(findings_box);
     findings_ = new QListWidget(findings_box);
     connect(findings_, &QListWidget::currentRowChanged, this, &MainWindow::show_details);
+    connect(findings_, &QListWidget::currentRowChanged, this, &MainWindow::update_action_button);
     findings_layout->addWidget(findings_);
+
+    // O botao de acao so aparece para achados que o Zelo sabe resolver com
+    // seguranca. Nos demais ele fica escondido, em vez de desabilitado: um
+    // botao cinza sugere que existe uma acao, e para a maioria dos achados nao
+    // existe nenhuma que o aplicativo deva tomar sozinho.
+    action_button_ = new QPushButton(findings_box);
+    action_button_->setVisible(false);
+    connect(action_button_, &QPushButton::clicked, this, &MainWindow::clean_temporary_files);
+    findings_layout->addWidget(action_button_);
 
     auto* details_box = new QGroupBox(QStringLiteral("Detalhes"), splitter);
     auto* details_layout = new QVBoxLayout(details_box);
@@ -167,6 +183,97 @@ void MainWindow::start_analysis() {
 
     analyze_button_->setEnabled(true);
     analyze_button_->setText(QStringLiteral("Analisar de novo"));
+}
+
+void MainWindow::update_action_button(int index) {
+    const bool cleanable =
+        index >= 0 && index < static_cast<int>(result_.recommendations.size()) &&
+        result_.recommendations.at(static_cast<std::size_t>(index)).rule_id ==
+            "storage.excessive-temporary-files";
+
+    action_button_->setVisible(cleanable);
+    if (cleanable) {
+        action_button_->setText(QStringLiteral("Limpar arquivos temporarios..."));
+    }
+}
+
+void MainWindow::clean_temporary_files() {
+    action_button_->setEnabled(false);
+    action_button_->setText(QStringLiteral("Verificando o que pode ser removido..."));
+    QApplication::processEvents();
+
+    const auto protected_paths =
+        collectors::build_protected_paths(collectors::collect_system_paths());
+
+    const collectors::TemporaryFilesCollector collector{protected_paths};
+
+    std::vector<std::string> paths;
+    for (const auto& file : collector.list_files()) {
+        paths.push_back(file.string());
+    }
+
+    const storage::QuarantineStore quarantine{storage::default_data_directory() / "quarentena",
+                                              protected_paths};
+    const storage::CleanupService cleanup{quarantine, protected_paths};
+
+    const core::CleanupPlan plan = cleanup.plan(paths, "storage.excessive-temporary-files");
+
+    action_button_->setEnabled(true);
+    update_action_button(findings_->currentRow());
+
+    if (plan.empty()) {
+        QMessageBox::information(this, QStringLiteral("Limpeza"),
+                                 QStringLiteral("Nao ha arquivos temporarios que possam ser "
+                                                "removidos com seguranca agora."));
+        return;
+    }
+
+    // A confirmacao mostra numero e tamanho de verdade, e diz para onde os
+    // arquivos vao. Aprovar "limpar temporarios" sem saber quanto sai nao e
+    // consentimento informado.
+    QMessageBox confirmation(this);
+    confirmation.setWindowTitle(QStringLiteral("Confirmar limpeza"));
+    confirmation.setIcon(QMessageBox::Question);
+    confirmation.setText(QStringLiteral("Remover %1 arquivos temporarios, liberando cerca de %2?")
+                             .arg(plan.items.size())
+                             .arg(QString::fromStdString(core::format_bytes(plan.total_bytes()))));
+    confirmation.setInformativeText(
+        QStringLiteral("Os arquivos vao para a quarentena do Zelo, nao sao apagados agora. "
+                       "Se algo fizer falta, da para devolver.\n\n"
+                       "Programas abertos podem estar usando parte deles; esses ficam onde "
+                       "estao e o espaco liberado sera menor que o estimado."));
+
+    auto* confirm = confirmation.addButton(QStringLiteral("Limpar"), QMessageBox::AcceptRole);
+    confirmation.addButton(QStringLiteral("Cancelar"), QMessageBox::RejectRole);
+    confirmation.setDefaultButton(qobject_cast<QPushButton*>(confirmation.buttons().last()));
+    confirmation.exec();
+
+    if (confirmation.clickedButton() != confirm) {
+        spdlog::info("limpeza cancelada pelo usuario");
+        return;
+    }
+
+    action_button_->setEnabled(false);
+    action_button_->setText(QStringLiteral("Limpando..."));
+    QApplication::processEvents();
+
+    const core::CleanupOutcome outcome = cleanup.execute(plan);
+
+    QString report = QStringLiteral("%1 arquivos removidos, %2 liberados.")
+                         .arg(outcome.removed_count)
+                         .arg(QString::fromStdString(core::format_bytes(outcome.freed_bytes)));
+    if (!outcome.skipped.empty()) {
+        report += QStringLiteral("\n\n%1 arquivos ficaram onde estavam, em geral por estarem "
+                                 "em uso por algum programa aberto.")
+                      .arg(outcome.skipped.size());
+    }
+    report += QStringLiteral("\n\nOs arquivos estao na quarentena e podem ser devolvidos.");
+
+    QMessageBox::information(this, QStringLiteral("Limpeza concluida"), report);
+
+    // Reanalisa: a pontuacao e o espaco livre mudaram, e mostrar numero velho
+    // depois de agir seria enganoso.
+    start_analysis();
 }
 
 void MainWindow::show_result(const core::AnalysisResult& result) {
