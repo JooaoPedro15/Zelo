@@ -3,6 +3,9 @@
 #include "ui/presentation.hpp"
 
 #include <collectors/snapshot_collector.hpp>
+#include <monitor/growth_report.hpp>
+#include <monitor/snapshot_store.hpp>
+#include <monitor/snapshot_taker.hpp>
 #include <collectors/system_paths.hpp>
 #include <collectors/temporary_files_collector.hpp>
 #include <core/rules/format.hpp>
@@ -23,6 +26,7 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
+#include <QTabWidget>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSplitter>
@@ -135,9 +139,42 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     splitter->addWidget(details_box);
     splitter->setStretchFactor(0, 2);
     splitter->setStretchFactor(1, 3);
-    layout->addWidget(splitter, 1);
+
+    tabs_ = new QTabWidget(central);
+    tabs_->addTab(splitter, QStringLiteral("Analise"));
+    tabs_->addTab(build_growth_tab(), QStringLiteral("O que cresceu"));
+    layout->addWidget(tabs_, 1);
 
     setCentralWidget(central);
+
+    show_growth();
+}
+
+QWidget* MainWindow::build_growth_tab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    growth_summary_ = new QLabel(page);
+    growth_summary_->setWordWrap(true);
+    growth_summary_->setTextFormat(Qt::RichText);
+    layout->addWidget(growth_summary_);
+
+    growth_ = new QTextBrowser(page);
+    layout->addWidget(growth_, 1);
+
+    auto* actions = new QHBoxLayout;
+
+    // Um retrato do disco leva minutos. Ele nao pode acontecer sozinho ao abrir
+    // o programa: seria o aplicativo travando sem o usuario ter pedido nada.
+    snapshot_button_ = new QPushButton(QStringLiteral("Tirar retrato do disco"), page);
+    connect(snapshot_button_, &QPushButton::clicked, this, &MainWindow::take_snapshot);
+    actions->addWidget(snapshot_button_);
+
+    snapshot_progress_ = new QLabel(page);
+    actions->addWidget(snapshot_progress_, 1);
+
+    layout->addLayout(actions);
+    return page;
 }
 
 const core::AnalysisResult& MainWindow::result() const {
@@ -324,6 +361,155 @@ void MainWindow::clean_selected_finding() {
     // Reanalisa: a pontuacao e o espaco livre mudaram, e mostrar numero velho
     // depois de agir seria enganoso.
     start_analysis();
+}
+
+namespace {
+
+/// Onde o monitor guarda os retratos. Fica junto dos demais dados do Zelo, e a
+/// varredura exclui essa pasta de proposito.
+std::filesystem::path snapshot_database() {
+    return storage::default_data_directory() / "monitor" / "retratos.sqlite";
+}
+
+QString attribution_label(monitor::AttributionConfidence confidence) {
+    switch (confidence) {
+    case monitor::AttributionConfidence::Confirmed:
+        return QStringLiteral("confirmado");
+    case monitor::AttributionConfidence::HighlyLikely:
+        return QStringLiteral("altamente provavel");
+    case monitor::AttributionConfidence::PossiblyRelated:
+        return QStringLiteral("possivelmente relacionado");
+    case monitor::AttributionConfidence::Unknown:
+        break;
+    }
+    return QStringLiteral("origem desconhecida");
+}
+
+}
+
+void MainWindow::take_snapshot() {
+    snapshot_button_->setEnabled(false);
+    snapshot_progress_->setText(QStringLiteral("Percorrendo o disco... isto leva alguns minutos."));
+    QApplication::processEvents();
+
+    monitor::SnapshotStore store{snapshot_database()};
+    if (!store.ok()) {
+        snapshot_progress_->setText(QStringLiteral("Nao foi possivel abrir o banco de retratos."));
+        snapshot_button_->setEnabled(true);
+        return;
+    }
+
+    const monitor::SnapshotTaker taker{monitor::SnapshotOptions{
+        // Sem isto o proprio banco de retratos apareceria como consumo
+        // misterioso na proxima comparacao.
+        .excluded_paths = {storage::default_data_directory().string()},
+    }};
+
+    spdlog::info("retrato iniciado");
+    auto snapshot = taker.take("C:\\", "C:");
+
+    if (!snapshot.complete) {
+        snapshot_progress_->setText(
+            QStringLiteral("A varredura nao terminou; o retrato nao foi guardado."));
+        snapshot_button_->setEnabled(true);
+        return;
+    }
+
+    if (store.save(snapshot) == 0) {
+        snapshot_progress_->setText(QStringLiteral("Nao foi possivel guardar o retrato."));
+        snapshot_button_->setEnabled(true);
+        return;
+    }
+
+    store.apply_retention();
+    spdlog::info("retrato guardado: {} pastas", snapshot.folders.size());
+
+    snapshot_progress_->setText(
+        QStringLiteral("Retrato guardado (%1 pastas). Banco: %2.")
+            .arg(snapshot.folders.size())
+            .arg(QString::fromStdString(core::format_bytes(store.database_size_bytes()))));
+
+    snapshot_button_->setEnabled(true);
+    show_growth();
+}
+
+void MainWindow::show_growth() {
+    const monitor::SnapshotStore store{snapshot_database()};
+    if (!store.ok()) {
+        growth_summary_->setText(QStringLiteral("<b>O monitoramento nao pode ser aberto.</b>"));
+        return;
+    }
+
+    const auto snapshots = store.list();
+
+    if (snapshots.size() < 2) {
+        // Ser claro sobre isso importa: sem um passado registrado nao ha como
+        // dizer o que mudou, e prometer o contrario frustraria o usuario.
+        growth_summary_->setText(
+            snapshots.empty()
+                ? QStringLiteral("<b>Nenhum retrato ainda.</b> O primeiro serve de referencia; a "
+                                 "comparacao aparece a partir do segundo.")
+                : QStringLiteral("<b>Um retrato guardado.</b> Tire outro depois de usar o "
+                                 "computador para ver o que mudou no periodo."));
+        growth_->clear();
+        return;
+    }
+
+    const auto diff = store.compare(snapshots[1].id, snapshots[0].id);
+    if (!diff) {
+        growth_summary_->setText(
+            QStringLiteral("<b>Os dois retratos mais recentes nao podem ser comparados.</b>"));
+        return;
+    }
+
+    const auto report = monitor::build_growth_report(*diff);
+
+    const bool lost = report.free_space_delta < 0;
+    const auto amount = static_cast<std::uint64_t>(std::abs(report.free_space_delta));
+
+    growth_summary_->setText(
+        QStringLiteral("<b>Desde %1, o disco C: %2 %3 de espaco livre.</b>")
+            .arg(QString::fromStdString(report.from_taken_at),
+                 lost ? QStringLiteral("perdeu") : QStringLiteral("recuperou"),
+                 QString::fromStdString(core::format_bytes(amount))));
+
+    QString body;
+
+    if (report.items.empty()) {
+        body += QStringLiteral("<p>Nenhuma pasta cresceu de forma relevante no periodo.</p>");
+    } else {
+        body += QStringLiteral("<p><b>O que cresceu</b></p><ul>");
+        for (std::size_t index = 0; index < std::min<std::size_t>(15, report.items.size());
+             ++index) {
+            const auto& item = report.items[index];
+            body += QStringLiteral("<li><b>%1</b> — %2 <i>(%3)</i></li>")
+                        .arg(QString::fromStdString(item.path).toHtmlEscaped(),
+                             QString::fromStdString(core::format_bytes(
+                                 static_cast<std::uint64_t>(item.exclusive_bytes))),
+                             attribution_label(item.attribution));
+        }
+        body += QStringLiteral("</ul>");
+    }
+
+    if (!report.shrunk.empty()) {
+        body += QStringLiteral("<p><b>O que encolheu</b></p><ul>");
+        for (std::size_t index = 0; index < std::min<std::size_t>(5, report.shrunk.size());
+             ++index) {
+            const auto& item = report.shrunk[index];
+            body += QStringLiteral("<li>%1 — %2 a menos</li>")
+                        .arg(QString::fromStdString(item.path).toHtmlEscaped(),
+                             QString::fromStdString(core::format_bytes(
+                                 static_cast<std::uint64_t>(-item.exclusive_bytes))));
+        }
+        body += QStringLiteral("</ul>");
+    }
+
+    body += QStringLiteral(
+        "<p style='color:gray'><i>Cada pasta mostra o quanto ela cresceu por conta propria: o "
+        "crescimento que vem de uma subpasta aparece na subpasta, para o mesmo espaco nao ser "
+        "contado duas vezes.</i></p>");
+
+    growth_->setHtml(body);
 }
 
 void MainWindow::show_result(const core::AnalysisResult& result) {

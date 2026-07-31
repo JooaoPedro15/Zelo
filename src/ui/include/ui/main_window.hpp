@@ -44,6 +44,15 @@ private:
     /// O achado selecionado, ou nulo quando nao ha selecao.
     [[nodiscard]] const core::Recommendation* selected_recommendation() const;
 
+    QWidget* build_growth_tab();
+
+    /// Percorre o disco e guarda o retrato. Leva minutos, entao e sempre uma
+    /// acao pedida pelo usuario, com progresso a vista.
+    void take_snapshot();
+
+    /// Mostra o que mudou entre os dois retratos mais recentes.
+    void show_growth();
+
     QLabel* score_label_ = nullptr;
     QLabel* summary_label_ = nullptr;
     QProgressBar* score_bar_ = nullptr;
@@ -52,6 +61,12 @@ private:
     QTextBrowser* details_ = nullptr;
     QPushButton* analyze_button_ = nullptr;
     QPushButton* action_button_ = nullptr;
+
+    QTabWidget* tabs_ = nullptr;
+    QLabel* growth_summary_ = nullptr;
+    QTextBrowser* growth_ = nullptr;
+    QPushButton* snapshot_button_ = nullptr;
+    QLabel* snapshot_progress_ = nullptr;
 
     core::AnalysisResult result_;
 };

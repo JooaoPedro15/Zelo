@@ -1,6 +1,8 @@
 add_library(zelo_monitor STATIC
     snapshot_store.cpp
     snapshot_taker.cpp
+    growth_report.cpp
+    include/monitor/growth_report.hpp
     include/monitor/snapshot.hpp
     include/monitor/snapshot_store.hpp
     include/monitor/snapshot_taker.hpp

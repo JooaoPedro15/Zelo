@@ -26,6 +26,9 @@ add_executable(zelo_tests
     storage/cleanup_service_test.cpp
     monitor/snapshot_store_test.cpp
     monitor/snapshot_taker_test.cpp
+    monitor/real_snapshot_test.cpp
+    monitor/growth_report_test.cpp
+    monitor/snapshot_flow_test.cpp
     ui/presentation_test.cpp
 )
 
