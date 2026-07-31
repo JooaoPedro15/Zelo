@@ -5,10 +5,10 @@ add_subdirectory(commands)
 add_subdirectory(storage)
 add_subdirectory(ui)
 
-# Sem WIN32: o executavel precisa de console para `--simular-limpeza` imprimir a
-# lista. O Windows so cria janela para aplicativo GUI quando ele a pede, entao a
-# interface continua abrindo normalmente.
-qt_add_executable(zelo
+# WIN32: abrir o programa nao deve mostrar uma janela de console preta ao lado
+# da interface. Para `--simular-limpeza` funcionar no terminal, o programa se
+# liga ao console de quem o chamou (ver attach_parent_console em main.cpp).
+qt_add_executable(zelo WIN32
     main.cpp
 )
 

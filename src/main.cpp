@@ -12,8 +12,14 @@
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QFile>
+#include <QMessageBox>
 #include <QTextStream>
 #include <QTimer>
+
+#include <windows.h>
+
+#include <shellapi.h>
 
 namespace {
 
@@ -23,7 +29,25 @@ namespace {
 /// de confiar no botao. Para o projeto, e o unico jeito honesto de verificar o
 /// caminho da limpeza sem apagar arquivo de alguem durante o desenvolvimento.
 int simulate_cleanup() {
-    QTextStream out(stdout);
+    // O relatorio vai para arquivo, nao para a tela. O programa e compilado
+    // como aplicativo grafico para abrir sem console, e nesse modo a saida
+    // padrao nao chega de volta a quem chamou. Arquivo funciona igual seja
+    // pelo terminal ou por um atalho, e ainda fica guardado para consulta.
+    const auto report_path =
+        zelo::storage::default_data_directory() / "simulacao-limpeza.txt";
+
+    std::error_code error;
+    std::filesystem::create_directories(report_path.parent_path(), error);
+
+    QFile report(QString::fromStdWString(report_path.wstring()));
+    if (!report.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(nullptr, QStringLiteral("Simulacao"),
+                             QStringLiteral("Nao foi possivel gravar o relatorio em %1.")
+                                 .arg(QString::fromStdWString(report_path.wstring())));
+        return 1;
+    }
+
+    QTextStream out(&report);
 
     const auto protected_paths =
         zelo::collectors::build_protected_paths(zelo::collectors::collect_system_paths());
@@ -43,7 +67,20 @@ int simulate_cleanup() {
         }
 
         const auto plan = cleanup.plan_folder(location.path, location.id);
+
+        // Local que a analise mediu mas o plano nao alcancou precisa aparecer
+        // com o motivo. Pular em silencio esconderia justamente o caso em que o
+        // Zelo promete espaco que nao consegue liberar.
         if (plan.empty()) {
+            out << "\n" << QString::fromStdString(location.display_name) << "\n"
+                << "  " << QString::fromStdString(location.path) << "\n"
+                << "  a analise mediu "
+                << QString::fromStdString(zelo::core::format_bytes(location.size_bytes))
+                << ", mas nenhum arquivo entrou no plano\n";
+
+            for (const auto& reason : plan.rejected) {
+                out << "  motivo: " << QString::fromStdString(reason) << "\n";
+            }
             continue;
         }
 
@@ -80,6 +117,12 @@ int simulate_cleanup() {
         << "Total: " << grand_count << " arquivos, "
         << QString::fromStdString(zelo::core::format_bytes(grand_total)) << "\n"
         << "\nNenhum arquivo foi removido: isto e apenas uma simulacao.\n";
+    out.flush();
+    report.close();
+
+    ::ShellExecuteW(nullptr, L"open", report_path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+
+    spdlog::info("simulacao gravada em {}", report_path.string());
     return 0;
 }
 
