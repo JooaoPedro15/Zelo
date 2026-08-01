@@ -1,4 +1,4 @@
-add_executable(cleaner_tests
+﻿add_executable(cleaner_tests
     qt_environment.cpp
     smoke/modules_smoke_test.cpp
     core/protected_paths_test.cpp
@@ -23,6 +23,7 @@ add_executable(cleaner_tests
     collectors/disk_collector_test.cpp
     collectors/wmi_test.cpp
     commands/official_commands_test.cpp
+    commands/installer_cache_test.cpp
     storage/json_codec_test.cpp
     storage/history_store_test.cpp
     storage/logging_test.cpp
@@ -59,8 +60,8 @@ target_link_libraries(cleaner_tests PRIVATE
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-# Os testes de apresentaÃ§Ã£o usam QString e QColor, entÃ£o o binÃ¡rio carrega as
-# DLLs do Qt. DL_PATHS as coloca no PATH tanto na descoberta quanto na execuÃ§Ã£o.
+# Os testes de apresentação usam QString e QColor, então o binário carrega as
+# DLLs do Qt. DL_PATHS as coloca no PATH tanto na descoberta quanto na execução.
 catch_discover_tests(cleaner_tests
     DL_PATHS "$<TARGET_FILE_DIR:Qt6::Core>"
 )

@@ -7,6 +7,7 @@
 #include <collectors/cloud_folders.hpp>
 #include <collectors/startup_collector.hpp>
 #include <commands/command_catalog.hpp>
+#include <commands/installer_cache.hpp>
 #include <commands/startup_control.hpp>
 #include <commands/command_runner.hpp>
 #include <monitor/action_log.hpp>
@@ -607,13 +608,137 @@ QWidget* MainWindow::build_windows_tab() {
     windows_output_ = new QTextBrowser(page);
     layout->addWidget(windows_output_, 1);
 
+    auto* actions = new QHBoxLayout;
+
     windows_run_button_ = new QPushButton(QStringLiteral("Executar"), page);
     windows_run_button_->setEnabled(false);
     connect(windows_run_button_, &QPushButton::clicked, this,
             &MainWindow::run_selected_windows_command);
-    layout->addWidget(windows_run_button_);
+    actions->addWidget(windows_run_button_);
+
+    // Fica fora da lista de comandos porque nao e um comando do Windows: e uma
+    // conferencia que o Cleaner faz perguntando ao Windows Installer quem e
+    // dono de que. Nenhum programa da Microsoft limpa essa pasta.
+    installer_cache_button_ =
+        new QPushButton(QStringLiteral("Conferir instaladores guardados"), page);
+    connect(installer_cache_button_, &QPushButton::clicked, this,
+            &MainWindow::review_installer_cache);
+    actions->addWidget(installer_cache_button_);
+
+    layout->addLayout(actions);
 
     return page;
+}
+
+void MainWindow::review_installer_cache() {
+    installer_cache_button_->setEnabled(false);
+    windows_output_->setHtml(QStringLiteral(
+        "<p>Perguntando ao Windows quais instaladores ainda tem dono...</p>"));
+    QApplication::processEvents();
+
+    const auto report = commands::scan_installer_cache();
+    installer_cache_button_->setEnabled(true);
+
+    if (!report.products_readable) {
+        windows_output_->setHtml(
+            QStringLiteral("<p style='color:#E68A00'><b>Conferencia nao concluida.</b><br>%1</p>")
+                .arg(QString::fromStdString(report.obstacle).toHtmlEscaped()));
+        return;
+    }
+
+    QString body = QStringLiteral(
+                       "<h3>Instaladores guardados pelo Windows</h3>"
+                       "<table cellspacing='0' cellpadding='6'>"
+                       "<tr><td><b>Ainda em uso</b></td><td>%1</td><td>%2 arquivos</td></tr>"
+                       "<tr><td><b>Sem dono</b></td><td>%3</td><td>%4 arquivos</td></tr>"
+                       "</table>")
+                       .arg(QString::fromStdString(core::format_bytes(report.referenced_bytes)))
+                       .arg(report.referenced_count)
+                       .arg(QString::fromStdString(core::format_bytes(report.orphan_bytes)))
+                       .arg(report.orphans.size());
+
+    body += QStringLiteral(
+        "<p>O Windows guarda uma copia do instalador de cada programa para poder reparar e "
+        "desinstalar depois, e nunca remove essa copia sozinho — nem quando o programa e "
+        "desinstalado. Os <b>sem dono</b> sao os que nenhum programa instalado reivindica.</p>");
+
+    if (report.orphans.empty()) {
+        body += QStringLiteral("<p>Nada a remover aqui.</p>");
+        windows_output_->setHtml(body);
+        return;
+    }
+
+    body += QStringLiteral("<p><b>Os maiores:</b></p><ul>");
+    for (std::size_t index = 0; index < std::min<std::size_t>(10, report.orphans.size()); ++index) {
+        const auto& orphan = report.orphans.at(index);
+        body += QStringLiteral("<li>%1 — %2</li>")
+                    .arg(QString::fromStdString(std::filesystem::path(orphan.path)
+                                                    .filename()
+                                                    .string())
+                             .toHtmlEscaped())
+                    .arg(QString::fromStdString(core::format_bytes(orphan.bytes)));
+    }
+    body += QStringLiteral("</ul>");
+
+    windows_output_->setHtml(body);
+
+    QMessageBox confirmation(this);
+    confirmation.setWindowTitle(QStringLiteral("Remover instaladores sem dono"));
+    confirmation.setTextFormat(Qt::RichText);
+    confirmation.setText(
+        QStringLiteral(
+            "<p>Remover %1 instaladores, liberando %2?</p>"
+            "<p><b>Sem volta.</b> Sao copias de instaladores de programas que nao estao mais "
+            "instalados. O que se perde e a possibilidade de reparar ou desinstalar pelo painel "
+            "do Windows um programa que ja saiu do computador.</p>"
+            "<p>Nenhum instalador em uso entra nesta lista: a separacao veio do proprio "
+            "Windows Installer, nao de palpite sobre o nome do arquivo.</p>")
+            .arg(report.orphans.size())
+            .arg(QString::fromStdString(core::format_bytes(report.orphan_bytes))));
+    confirmation.addButton(QStringLiteral("Remover"), QMessageBox::AcceptRole);
+    confirmation.addButton(QStringLiteral("Cancelar"), QMessageBox::RejectRole);
+    confirmation.setDefaultButton(qobject_cast<QPushButton*>(confirmation.buttons().last()));
+    confirmation.exec();
+
+    if (confirmation.buttonRole(confirmation.clickedButton()) != QMessageBox::AcceptRole) {
+        return;
+    }
+
+    installer_cache_button_->setEnabled(false);
+    QApplication::processEvents();
+
+    const auto outcome = commands::remove_orphan_installers(report.orphans);
+    installer_cache_button_->setEnabled(true);
+
+    QString resultado = QStringLiteral("<p><b>%1 instaladores removidos, %2 liberados.</b></p>")
+                            .arg(outcome.removed)
+                            .arg(QString::fromStdString(core::format_bytes(outcome.bytes)));
+
+    if (outcome.needs_elevation) {
+        resultado += QStringLiteral(
+            "<p style='color:#E68A00'>Parte deles exige o Cleaner aberto como administrador.</p>");
+    } else if (outcome.failed > 0) {
+        resultado += QStringLiteral("<p style='color:#E68A00'>%1 nao puderam ser removidos.</p>")
+                         .arg(outcome.failed);
+    }
+
+    windows_output_->setHtml(resultado);
+
+    monitor::ActionLog log{action_database()};
+    if (log.ok()) {
+        log.record(monitor::ActionRecord{
+            .kind = monitor::ActionKind::Deleted,
+            .reason = "Instaladores guardados sem programa dono",
+            .target = "Windows\\Installer",
+            .item_count = outcome.removed,
+            .bytes = outcome.bytes,
+            .skipped_count = outcome.failed,
+            .reversible = false,
+        });
+    }
+
+    spdlog::info("instaladores orfaos removidos: {} arquivos, {} bytes", outcome.removed,
+                 outcome.bytes);
 }
 
 namespace {

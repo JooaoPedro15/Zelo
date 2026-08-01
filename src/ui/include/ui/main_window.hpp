@@ -80,6 +80,10 @@ private:
 
     void show_windows_command_details();
 
+    /// Confere quais instaladores guardados pelo Windows nenhum programa
+    /// instalado ainda reivindica, e oferece removê-los.
+    void review_installer_cache();
+
     QWidget* build_history_tab();
 
     /// Lista o que o Cleaner ja fez no computador, filtrado pela busca.
@@ -113,6 +117,7 @@ private:
     QListWidget* windows_commands_ = nullptr;
     QTextBrowser* windows_output_ = nullptr;
     QPushButton* windows_run_button_ = nullptr;
+    QPushButton* installer_cache_button_ = nullptr;
 
     QTextBrowser* history_ = nullptr;
     QLineEdit* history_search_ = nullptr;

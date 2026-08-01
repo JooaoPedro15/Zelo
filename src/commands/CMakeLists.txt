@@ -3,10 +3,12 @@
     command_catalog.cpp
     command_runner.cpp
     startup_control.cpp
+    installer_cache.cpp
     include/commands/commands.hpp
     include/commands/command_catalog.hpp
     include/commands/command_runner.hpp
     include/commands/startup_control.hpp
+    include/commands/installer_cache.hpp
 )
 
 target_include_directories(cleaner_commands
