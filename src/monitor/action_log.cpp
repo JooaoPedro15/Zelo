@@ -8,6 +8,7 @@
 #include <QString>
 #include <QVariant>
 
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <utility>
@@ -17,7 +18,9 @@ namespace cleaner::monitor {
 namespace {
 
 QString next_connection_name() {
-    static int counter = 0;
+    // Atomico: o registro passou a ser escrito de threads de trabalho, e dois
+    // contadores lidos ao mesmo tempo dariam o mesmo nome de conexao.
+    static std::atomic<int> counter{0};
     return QStringLiteral("cleaner_actions_%1").arg(counter++);
 }
 

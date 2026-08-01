@@ -1,4 +1,4 @@
-#include "monitor/snapshot_store.hpp"
+﻿#include "monitor/snapshot_store.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -9,6 +9,7 @@
 #include <QVariant>
 
 #include <algorithm>
+#include <atomic>
 #include <map>
 #include <utility>
 
@@ -27,7 +28,10 @@ std::string from_qt(const QVariant& value) {
 /// Cada instancia usa uma conexao propria: o Qt identifica conexoes por nome, e
 /// duas instancias com o mesmo nome brigariam pelo mesmo banco.
 QString next_connection_name() {
-    static int counter = 0;
+    // Atomico porque o retrato e a leitura do historico passaram a rodar fora da
+    // thread da interface. Dois contadores lidos ao mesmo tempo dariam o mesmo
+    // nome, e duas conexoes de mesmo nome sao a mesma conexao.
+    static std::atomic<int> counter{0};
     return QStringLiteral("cleaner_monitor_%1").arg(counter++);
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/models/cleanup_plan.hpp>
 #include <core/usecases/quick_analysis.hpp>
 #include <monitor/folder_watcher.hpp>
 
@@ -42,6 +43,13 @@ private:
     /// confirmar. A confirmacao e sempre explicita: limpar apaga arquivo, ainda
     /// que a quarentena permita voltar atras.
     void clean_selected_finding();
+
+    /// Segunda metade da limpeza: com o plano ja levantado, mostra o que sairia,
+    /// pergunta e so entao executa. Separada porque o levantamento acontece fora
+    /// da thread da interface e volta para ca.
+    void confirm_and_clean(core::CleanupPlan plan, const std::string& rule_id,
+                           const std::string& title, const std::string& limitations,
+                           const std::vector<std::string>& affected);
 
     void update_action_button(int index);
 
@@ -124,6 +132,13 @@ private:
     QLabel* snapshot_progress_ = nullptr;
 
     core::AnalysisResult result_;
+
+    /// Ha um trabalho demorado em andamento.
+    ///
+    /// Enquanto ele roda a janela continua respondendo, e e justamente por isso
+    /// que o segundo clique precisa ser barrado: antes, a tela travada fazia
+    /// esse papel por acidente.
+    bool busy_ = false;
 
     /// Vive enquanto a janela existe: fechar o aplicativo encerra a observacao.
     std::unique_ptr<monitor::FolderWatcher> watcher_;

@@ -5,6 +5,8 @@
 #include <collectors/running_apps.hpp>
 #include <collectors/snapshot_collector.hpp>
 #include <collectors/cloud_folders.hpp>
+#include <ui/background.hpp>
+
 #include <collectors/startup_collector.hpp>
 #include <commands/command_catalog.hpp>
 #include <commands/installer_cache.hpp>
@@ -952,44 +954,60 @@ const core::AnalysisResult& MainWindow::result() const {
 }
 
 void MainWindow::start_analysis() {
+    if (busy_) {
+        return;
+    }
+    busy_ = true;
+
     analyze_button_->setEnabled(false);
     analyze_button_->setText(QStringLiteral("Analisando..."));
     summary_label_->setText(QStringLiteral("Lendo discos, inicializacao e temporarios..."));
-    QApplication::processEvents();
 
     spdlog::info("analise iniciada");
 
-    const auto snapshot = collectors::collect_snapshot();
-    result_ = core::QuickAnalysis::with_default_rules().run(snapshot);
+    const auto version = QApplication::applicationVersion().toStdString();
 
-    // O que nao pode ser observado vira registro. Sem isso, uma coleta que
-    // falha silenciosamente e indistinguivel de uma que nao achou nada.
-    for (const auto& area : result_.unavailable) {
-        spdlog::warn("nao foi possivel analisar: {}", area);
-    }
-    spdlog::info("analise concluida: saude {}, {} achados", result_.health.overall(),
-                 result_.recommendations.size());
+    // A coleta le disco, registro, WMI e log de eventos. Nada disso toca widget,
+    // entao roda inteira fora da thread da interface.
+    run_in_background<core::AnalysisResult>(
+        this,
+        [] { return core::QuickAnalysis::with_default_rules().run(collectors::collect_snapshot()); },
+        [this, version](core::AnalysisResult analysis) {
+            result_ = std::move(analysis);
 
-    show_result(result_);
+            // O que nao pode ser observado vira registro. Sem isso, uma coleta
+            // que falha silenciosamente e indistinguivel de uma que nao achou
+            // nada.
+            for (const auto& area : result_.unavailable) {
+                spdlog::warn("nao foi possivel analisar: {}", area);
+            }
+            spdlog::info("analise concluida: saude {}, {} achados", result_.health.overall(),
+                         result_.recommendations.size());
 
-    storage::StoredSession session;
-    session.id = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd_HHmmss_quick"))
-                     .toStdString();
-    session.started_at = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
-    session.app_version = QApplication::applicationVersion().toStdString();
-    session.result = result_;
+            show_result(result_);
 
-    const storage::HistoryStore history{storage::default_data_directory() / "history"};
-    history.save(session);
-    history.apply_retention(50);
+            storage::StoredSession session;
+            session.id =
+                QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd_HHmmss_quick"))
+                    .toStdString();
+            session.started_at = QDateTime::currentDateTime().toString(Qt::ISODate).toStdString();
+            session.app_version = version;
+            session.result = result_;
 
-    if (const auto quarantined = history.quarantine_unreadable(); quarantined > 0) {
-        spdlog::warn("{} arquivos de historico ilegiveis foram postos de quarentena", quarantined);
-    }
-    spdlog::info("analise gravada em {}", session.id);
+            const storage::HistoryStore history{storage::default_data_directory() / "history"};
+            history.save(session);
+            history.apply_retention(50);
 
-    analyze_button_->setEnabled(true);
-    analyze_button_->setText(QStringLiteral("Analisar de novo"));
+            if (const auto quarantined = history.quarantine_unreadable(); quarantined > 0) {
+                spdlog::warn("{} arquivos de historico ilegiveis foram postos de quarentena",
+                             quarantined);
+            }
+            spdlog::info("analise gravada em {}", session.id);
+
+            analyze_button_->setEnabled(true);
+            analyze_button_->setText(QStringLiteral("Analisar de novo"));
+            busy_ = false;
+        });
 }
 
 const core::Recommendation* MainWindow::selected_recommendation() const {
@@ -1056,36 +1074,58 @@ void MainWindow::clean_selected_finding() {
     const std::string limitations = recommendation->limitations;
     const std::vector<std::string> affected = recommendation->affected_paths;
 
+    if (busy_) {
+        return;
+    }
+    busy_ = true;
+
     action_button_->setEnabled(false);
     action_button_->setText(QStringLiteral("Verificando o que pode ser removido..."));
-    QApplication::processEvents();
 
-    const auto protected_paths =
-        collectors::build_protected_paths(collectors::collect_system_paths());
+    // Levantar o plano percorre as pastas envolvidas — centenas de milhares de
+    // arquivos no caso do cache de pacotes. Fica fora da thread da interface.
+    run_in_background<core::CleanupPlan>(
+        this,
+        [rule_id, affected] {
+            const auto protected_paths =
+                collectors::build_protected_paths(collectors::collect_system_paths());
 
-    const storage::QuarantineStore quarantine{storage::default_data_directory() / "quarentena",
-                                              protected_paths};
-    const storage::CleanupService cleanup{quarantine, protected_paths};
+            const storage::QuarantineStore quarantine{
+                storage::default_data_directory() / "quarentena", protected_paths};
+            const storage::CleanupService cleanup{quarantine, protected_paths};
 
-    core::CleanupPlan plan;
-    if (rule_id == "storage.excessive-temporary-files") {
-        const collectors::TemporaryFilesCollector collector{protected_paths};
+            core::CleanupPlan plan;
+            if (rule_id == "storage.excessive-temporary-files") {
+                const collectors::TemporaryFilesCollector collector{protected_paths};
 
-        std::vector<std::string> paths;
-        for (const auto& file : collector.list_files()) {
-            paths.push_back(file.string());
-        }
-        plan = cleanup.plan(paths, rule_id);
-    } else {
-        // Locais do catalogo sao pastas: o conteudo e levantado agora, para
-        // refletir o disco no momento de agir.
-        for (const auto& folder : affected) {
-            core::CleanupPlan folder_plan = cleanup.plan_folder(folder, rule_id);
-            plan.items.insert(plan.items.end(), folder_plan.items.begin(), folder_plan.items.end());
-            plan.rejected.insert(plan.rejected.end(), folder_plan.rejected.begin(),
-                                 folder_plan.rejected.end());
-        }
-    }
+                std::vector<std::string> paths;
+                for (const auto& file : collector.list_files()) {
+                    paths.push_back(file.string());
+                }
+                return cleanup.plan(paths, rule_id);
+            }
+
+            // Locais do catalogo sao pastas: o conteudo e levantado agora, para
+            // refletir o disco no momento de agir.
+            for (const auto& folder : affected) {
+                core::CleanupPlan folder_plan = cleanup.plan_folder(folder, rule_id);
+                plan.items.insert(plan.items.end(), folder_plan.items.begin(),
+                                  folder_plan.items.end());
+                plan.rejected.insert(plan.rejected.end(), folder_plan.rejected.begin(),
+                                     folder_plan.rejected.end());
+            }
+            return plan;
+        },
+        [this, rule_id, title, limitations, affected](core::CleanupPlan plan) {
+            busy_ = false;
+            confirm_and_clean(std::move(plan), rule_id, title, limitations, affected);
+        });
+}
+
+void MainWindow::confirm_and_clean(core::CleanupPlan plan, const std::string& rule_id,
+                                   const std::string& title, const std::string& limitations,
+                                   const std::vector<std::string>& affected) {
+    static_cast<void>(rule_id);
 
     action_button_->setEnabled(true);
     update_action_button(findings_->currentRow());
@@ -1141,47 +1181,70 @@ void MainWindow::clean_selected_finding() {
         return;
     }
 
+    busy_ = true;
     action_button_->setEnabled(false);
     action_button_->setText(QStringLiteral("Limpando..."));
-    QApplication::processEvents();
 
-    // Conteudo do catalogo e recriado pelo programa dono, entao guardar copia
-    // ocuparia o mesmo espaco que se queria liberar.
-    const core::CleanupOutcome outcome = cleanup.execute(plan, storage::RemovalMode::Delete);
+    const std::string target =
+        affected.empty() ? std::string{"arquivos temporarios do sistema"} : affected.front();
 
-    QString report = QStringLiteral("%1 arquivos removidos, %2 liberados.")
-                         .arg(outcome.removed_count)
-                         .arg(QString::fromStdString(core::format_bytes(outcome.freed_bytes)));
-    if (!outcome.skipped.empty()) {
-        report += QStringLiteral("\n\n%1 arquivos ficaram onde estavam, em geral por estarem "
-                                 "em uso por algum programa aberto. Fechar o programa e limpar "
-                                 "de novo costuma resolver.")
-                      .arg(outcome.skipped.size());
-    }
+    // Apagar centenas de milhares de arquivos leva minutos. Antes disso a janela
+    // ficava branca e sem responder, e nao havia como distinguir "trabalhando"
+    // de "travou".
+    run_in_background<core::CleanupOutcome>(
+        this,
+        [plan = std::move(plan), title, target] {
+            const auto protected_paths =
+                collectors::build_protected_paths(collectors::collect_system_paths());
+            const storage::QuarantineStore quarantine{
+                storage::default_data_directory() / "quarentena", protected_paths};
+            const storage::CleanupService cleanup{quarantine, protected_paths};
 
-    // Sem quarentena, o registro e a unica rastreabilidade que sobra. Ele nao
-    // desfaz nada — e justamente por isso a acao precisa ficar anotada.
-    monitor::ActionLog log{action_database()};
-    log.record(monitor::ActionRecord{
-        .kind = monitor::ActionKind::Deleted,
-        .reason = title,
-        .target = affected.empty() ? std::string{"arquivos temporarios do sistema"} : affected.front(),
-        .item_count = outcome.removed_count,
-        .bytes = outcome.freed_bytes,
-        .skipped_count = outcome.skipped.size(),
-        .reversible = false,
-    });
+            // Conteudo do catalogo e recriado pelo programa dono, entao guardar
+            // copia ocuparia o mesmo espaco que se queria liberar.
+            const auto outcome = cleanup.execute(plan, storage::RemovalMode::Delete);
 
-    QMessageBox::information(this, QStringLiteral("Limpeza concluida"), report);
-    show_history();
+            // Sem quarentena, o registro e a unica rastreabilidade que sobra.
+            // Ele nao desfaz nada — e justamente por isso a acao precisa ficar
+            // anotada.
+            monitor::ActionLog log{action_database()};
+            log.record(monitor::ActionRecord{
+                .kind = monitor::ActionKind::Deleted,
+                .reason = title,
+                .target = target,
+                .item_count = outcome.removed_count,
+                .bytes = outcome.freed_bytes,
+                .skipped_count = outcome.skipped.size(),
+                .reversible = false,
+            });
 
-    // O botao volta a funcionar antes da reanalise. Sem isto, limpar um achado
-    // deixava todos os outros sem acao.
-    action_button_->setEnabled(true);
+            return outcome;
+        },
+        [this](core::CleanupOutcome outcome) {
+            QString report = QStringLiteral("%1 arquivos removidos, %2 liberados.")
+                                 .arg(outcome.removed_count)
+                                 .arg(QString::fromStdString(
+                                     core::format_bytes(outcome.freed_bytes)));
+            if (!outcome.skipped.empty()) {
+                report += QStringLiteral(
+                              "\n\n%1 arquivos ficaram onde estavam, em geral por estarem "
+                              "em uso por algum programa aberto. Fechar o programa e limpar "
+                              "de novo costuma resolver.")
+                              .arg(outcome.skipped.size());
+            }
 
-    // Reanalisa: a pontuacao e o espaco livre mudaram, e mostrar numero velho
-    // depois de agir seria enganoso.
-    start_analysis();
+            QMessageBox::information(this, QStringLiteral("Limpeza concluida"), report);
+            show_history();
+
+            // O botao volta a funcionar antes da reanalise. Sem isto, limpar um
+            // achado deixava todos os outros sem acao.
+            action_button_->setEnabled(true);
+            busy_ = false;
+
+            // Reanalisa: a pontuacao e o espaco livre mudaram, e mostrar numero
+            // velho depois de agir seria enganoso.
+            start_analysis();
+        });
 }
 
 namespace {
@@ -1203,49 +1266,70 @@ QString attribution_label(monitor::AttributionConfidence confidence) {
 }
 
 void MainWindow::take_snapshot() {
+    if (busy_) {
+        return;
+    }
+    busy_ = true;
+
     snapshot_button_->setEnabled(false);
     snapshot_progress_->setText(QStringLiteral("Percorrendo o disco... isto leva alguns minutos."));
-    QApplication::processEvents();
 
-    monitor::SnapshotStore store{snapshot_database()};
-    if (!store.ok()) {
-        snapshot_progress_->setText(QStringLiteral("Nao foi possivel abrir o banco de retratos."));
-        snapshot_button_->setEnabled(true);
-        return;
-    }
+    struct SnapshotOutcome {
+        QString message;
+        bool saved = false;
+    };
 
-    const monitor::SnapshotTaker taker{monitor::SnapshotOptions{
-        // Sem isto o proprio banco de retratos apareceria como consumo
-        // misterioso na proxima comparacao.
-        .excluded_paths = {storage::default_data_directory().string()},
-    }};
+    // Varrer o C: inteiro passa de tres minutos nesta maquina. Era o trecho que
+    // mais tempo mantinha a janela sem responder — e o unico jeito de saber se
+    // o programa tinha travado era esperar.
+    //
+    // O banco e aberto dentro da propria thread de trabalho: conexao do Qt
+    // pertence a quem a criou, e usa-la de outra thread e defeito silencioso.
+    run_in_background<SnapshotOutcome>(
+        this,
+        [] {
+            monitor::SnapshotStore store{snapshot_database()};
+            if (!store.ok()) {
+                return SnapshotOutcome{
+                    QStringLiteral("Nao foi possivel abrir o banco de retratos.")};
+            }
 
-    spdlog::info("retrato iniciado");
-    auto snapshot = taker.take("C:\\", "C:");
+            const monitor::SnapshotTaker taker{monitor::SnapshotOptions{
+                // Sem isto o proprio banco de retratos apareceria como consumo
+                // misterioso na proxima comparacao.
+                .excluded_paths = {storage::default_data_directory().string()},
+            }};
 
-    if (!snapshot.complete) {
-        snapshot_progress_->setText(
-            QStringLiteral("A varredura nao terminou; o retrato nao foi guardado."));
-        snapshot_button_->setEnabled(true);
-        return;
-    }
+            spdlog::info("retrato iniciado");
+            const auto snapshot = taker.take("C:\\", "C:");
 
-    if (store.save(snapshot) == 0) {
-        snapshot_progress_->setText(QStringLiteral("Nao foi possivel guardar o retrato."));
-        snapshot_button_->setEnabled(true);
-        return;
-    }
+            if (!snapshot.complete) {
+                return SnapshotOutcome{
+                    QStringLiteral("A varredura nao terminou; o retrato nao foi guardado.")};
+            }
 
-    store.apply_retention();
-    spdlog::info("retrato guardado: {} pastas", snapshot.folders.size());
+            if (store.save(snapshot) == 0) {
+                return SnapshotOutcome{QStringLiteral("Nao foi possivel guardar o retrato.")};
+            }
 
-    snapshot_progress_->setText(
-        QStringLiteral("Retrato guardado (%1 pastas). Banco: %2.")
-            .arg(snapshot.folders.size())
-            .arg(QString::fromStdString(core::format_bytes(store.database_size_bytes()))));
+            store.apply_retention();
+            spdlog::info("retrato guardado: {} pastas", snapshot.folders.size());
 
-    snapshot_button_->setEnabled(true);
-    show_growth();
+            return SnapshotOutcome{
+                QStringLiteral("Retrato guardado (%1 pastas). Banco: %2.")
+                    .arg(snapshot.folders.size())
+                    .arg(QString::fromStdString(core::format_bytes(store.database_size_bytes()))),
+                true};
+        },
+        [this](SnapshotOutcome outcome) {
+            snapshot_progress_->setText(outcome.message);
+            snapshot_button_->setEnabled(true);
+            busy_ = false;
+
+            if (outcome.saved) {
+                show_growth();
+            }
+        });
 }
 
 QString MainWindow::describe_recent_activity() const {
