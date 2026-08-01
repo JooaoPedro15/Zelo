@@ -54,8 +54,8 @@ struct CatalogEntry {
 /// As pastas de temporarios do sistema nao entram aqui: elas tem coletor
 /// proprio, que sabe descobrir onde o Windows as coloca. Repeti-las produziria
 /// dois achados para os mesmos arquivos e um total somado em dobro.
-const std::array<CatalogEntry, 28>& catalog() {
-    static const std::array<CatalogEntry, 28> entries{{
+const std::array<CatalogEntry, 27>& catalog() {
+    static const std::array<CatalogEntry, 27> entries{{
         // --- Windows ---
         {"windows.update.download", "Instaladores de atualizacao ja aplicados",
          "%SystemRoot%\\SoftwareDistribution\\Download", "Windows Update",
@@ -104,11 +104,10 @@ const std::array<CatalogEntry, 28>& catalog() {
          "baixado de novo — e pode ser um download demorado.",
          RegenerationCost::NeedsDownload, RiskLevel::Yellow},
 
-        {"dev.codex.tmp", "Temporarios do Codex", "%USERPROFILE%\\.codex\\.tmp", "Codex",
-         "Arquivos de trabalho que o Codex cria durante o uso.",
-         "Nada do seu historico ou das suas configuracoes, que ficam em outras pastas.",
-         RegenerationCost::Free, RiskLevel::Yellow},
-
+        // A area do Codex saiu daqui: o perfil do aplicativo classifica cada
+        // pasta separadamente, e manter a entrada no catalogo produzia dois
+        // achados para o mesmo caminho, com riscos diferentes. Sobra o cache de
+        // runtimes, que fica fora da area do programa.
         {"dev.codex.runtimes", "Runtimes baixados pelo Codex",
          "%USERPROFILE%\\.cache\\codex-runtimes", "Codex",
          "Ambientes de execucao que o Codex baixou para rodar codigo.",

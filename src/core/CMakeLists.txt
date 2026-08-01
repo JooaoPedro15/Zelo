@@ -37,6 +37,9 @@ add_library(zelo_core STATIC
     include/core/rules/windows_integrity_rule.hpp
     rules/filesystem_corruption_rule.cpp
     include/core/rules/filesystem_corruption_rule.hpp
+    rules/app_profile_rule.cpp
+    include/core/rules/app_profile_rule.hpp
+    include/core/models/app_profile.hpp
     rules/reclaimable_space_rule.cpp
     include/core/rules/reclaimable_space_rule.hpp
     include/core/models/known_location.hpp

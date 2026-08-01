@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/models/app_profile.hpp"
 #include "core/models/known_location.hpp"
 
 #include <cstddef>
@@ -191,6 +192,9 @@ struct SystemSnapshot {
     DisksInfo disks;
     IntegrityInfo integrity;
     ReclaimableInfo reclaimable;
+
+    bool profiles_available = false;
+    std::vector<ProfileFinding> profile_findings;
 };
 
 }

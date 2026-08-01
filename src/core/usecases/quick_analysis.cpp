@@ -1,5 +1,6 @@
 #include "core/usecases/quick_analysis.hpp"
 
+#include "core/rules/app_profile_rule.hpp"
 #include "core/rules/disk_health_rule.hpp"
 #include "core/rules/filesystem_corruption_rule.hpp"
 #include "core/rules/excessive_temporary_files_rule.hpp"
@@ -51,6 +52,7 @@ QuickAnalysis QuickAnalysis::with_default_rules() {
         std::make_shared<const WindowsIntegrityRule>(),
         std::make_shared<const FilesystemCorruptionRule>(),
         std::make_shared<const ReclaimableSpaceRule>(),
+        std::make_shared<const AppProfileRule>(),
     }};
 }
 

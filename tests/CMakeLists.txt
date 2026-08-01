@@ -15,6 +15,7 @@ add_executable(zelo_tests
     collectors/startup_collector_test.cpp
     collectors/real_analysis_test.cpp
     collectors/event_log_parsing_test.cpp
+    collectors/app_profiles_test.cpp
     collectors/stability_collector_test.cpp
     collectors/security_collector_test.cpp
     collectors/disk_collector_test.cpp

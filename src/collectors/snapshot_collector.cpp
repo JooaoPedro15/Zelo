@@ -1,6 +1,7 @@
 #include "collectors/snapshot_collector.hpp"
 
 #include "collectors/stability_collector.hpp"
+#include "collectors/app_profiles.hpp"
 #include "collectors/disk_collector.hpp"
 #include "collectors/known_locations.hpp"
 #include "collectors/memory_collector.hpp"
@@ -33,6 +34,7 @@ core::SystemSnapshot collect_snapshot(std::stop_token token) {
     temporary_files.collect_into(snapshot, token);
 
     ReclaimableCollector{protected_paths}.collect_into(snapshot, token);
+    AppProfileCollector{protected_paths}.collect_into(snapshot, token);
 
     return snapshot;
 }

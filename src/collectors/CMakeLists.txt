@@ -27,6 +27,8 @@ add_library(zelo_collectors STATIC
     include/collectors/disk_collector.hpp
     known_locations.cpp
     include/collectors/known_locations.hpp
+    app_profiles.cpp
+    include/collectors/app_profiles.hpp
     event_log_parsing.cpp
     include/collectors/event_log_parsing.hpp
     detail/text.cpp
