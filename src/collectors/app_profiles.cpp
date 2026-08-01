@@ -186,10 +186,137 @@ AppProfile claude_profile() {
     return profile;
 }
 
+AppProfile chromium_profile(std::string id, std::string application, std::string root) {
+    AppProfile profile;
+    profile.id = std::move(id);
+    profile.application = std::move(application);
+    profile.root = std::move(root);
+
+    profile.items = {
+        {"Cache", "Cache de navegacao",
+         "Paginas, imagens e scripts guardados para os sites abrirem mais rapido.",
+         "Nada seu. Nao perde senha, favorito, historico nem login — os sites so carregam um pouco "
+         "mais devagar na primeira visita depois da limpeza.",
+         RiskLevel::Green, RegenerationCost::NeedsDownload},
+        {"Code Cache", "Cache de scripts compilados",
+         "Resultado da compilacao de scripts de sites, guardado para nao repetir.",
+         "Nada seu; e refeito conforme voce navega.", RiskLevel::Green,
+         RegenerationCost::NeedsRework},
+        {"GPUCache", "Cache da placa de video", "Trabalho grafico ja feito.",
+         "E refeito no proximo uso.", RiskLevel::Green, RegenerationCost::NeedsRework},
+        {"ShaderCache", "Cache de shaders", "Shaders ja compilados pelo navegador.",
+         "Sao recompilados no proximo uso.", RiskLevel::Green, RegenerationCost::NeedsRework},
+        {"Shared Dictionary", "Dicionarios de compressao",
+         "Dados que ajudam a baixar paginas menores.", "Sao baixados de novo quando preciso.",
+         RiskLevel::Green, RegenerationCost::NeedsDownload},
+
+        // Estes sao os que um limpador desatento apaga junto com o cache — e ai
+        // o usuario perde senha, extensao ou os dados de um site que funciona
+        // offline.
+        {"Extensions", "Suas extensoes instaladas",
+         "Os arquivos das extensoes que voce instalou no navegador.",
+         "As extensoes em si. Voce teria que instalar tudo de novo.", RiskLevel::Red,
+         RegenerationCost::Permanent},
+        {"Local Extension Settings", "Configuracoes das extensoes",
+         "O que cada extensao guardou: preferencias, login, dados salvos.",
+         "As configuracoes e os logins das extensoes.", RiskLevel::Red,
+         RegenerationCost::Permanent},
+        {"Extension State", "Estado das extensoes", "Como cada extensao esta no momento.",
+         "O estado das extensoes.", RiskLevel::Red, RegenerationCost::Permanent},
+        {"IndexedDB", "Dados de sites guardados no computador",
+         "Onde os sites guardam conteudo para funcionar sem internet — mensagens, rascunhos, "
+         "arquivos.",
+         "Conteudo de sites que so existe no seu computador.", RiskLevel::Red,
+         RegenerationCost::Permanent},
+        {"Local Storage", "Preferencias dos sites",
+         "O que cada site guardou sobre voce: preferencias, sessao, itens em andamento.",
+         "As preferencias e, em muitos sites, o login.", RiskLevel::Red,
+         RegenerationCost::Permanent},
+        {"Session Storage", "Dados das abas abertas", "Estado do que esta aberto agora.",
+         "O que estava em andamento nas abas.", RiskLevel::Red, RegenerationCost::Permanent},
+        {"File System", "Arquivos guardados por sites",
+         "Arquivos que sites gravaram no seu computador.", "Esses arquivos.", RiskLevel::Red,
+         RegenerationCost::Permanent},
+        {"Storage", "Area de dados dos sites", "Onde os sites guardam o que precisam manter.",
+         "Dados de sites que so existem ali.", RiskLevel::Red, RegenerationCost::Permanent},
+        {"Network", "Cookies e dados de conexao",
+         "Cookies, tokens e informacoes de autenticacao.",
+         "Todos os seus logins. Voce teria que entrar de novo em cada site.", RiskLevel::Red,
+         RegenerationCost::Permanent},
+        {"Login Data", "Senhas salvas", "As senhas que voce mandou o navegador guardar.",
+         "Suas senhas salvas.", RiskLevel::Red, RegenerationCost::Permanent},
+        {"History", "Historico de navegacao", "Os sites que voce visitou.", "Seu historico.",
+         RiskLevel::Red, RegenerationCost::Permanent},
+        {"Web Data", "Dados de formularios", "Enderecos, cartoes e preenchimento automatico.",
+         "Os dados de preenchimento automatico.", RiskLevel::Red, RegenerationCost::Permanent},
+        {"Bookmarks", "Seus favoritos", "A lista de sites que voce salvou.", "Seus favoritos.",
+         RiskLevel::Red, RegenerationCost::Permanent},
+        {"Preferences", "Configuracoes do navegador", "Como voce ajustou o navegador.",
+         "Suas configuracoes.", RiskLevel::Red, RegenerationCost::Permanent},
+
+        // Fica misturado de proposito no navegador: dentro dele ha cache
+        // descartavel e dados que fazem um site funcionar sem internet.
+        {"Service Worker", "Dados de sites que funcionam offline",
+         "Aqui convivem cache descartavel e o conteudo que permite a um site abrir sem internet. "
+         "O Zelo nao separa os dois com seguranca.",
+         "Possivelmente a capacidade de usar alguns sites offline.", RiskLevel::Unknown,
+         RegenerationCost::NeedsDownload},
+    };
+
+    return profile;
+}
+
+AppProfile adobe_profile() {
+    AppProfile profile;
+    profile.id = "app.adobe";
+    profile.application = "Adobe";
+    profile.root = expand("%APPDATA%\\Adobe\\Common");
+
+    profile.items = {
+        {"Media Cache Files", "Cache de midia",
+         "Versoes processadas dos videos e audios que voce abriu nos programas da Adobe, "
+         "guardadas para a edicao ficar fluida.",
+         "Nada dos seus projetos nem das midias originais. Ao reabrir um projeto, o programa "
+         "reprocessa o material — a primeira abertura fica mais lenta.",
+         RiskLevel::Green, RegenerationCost::NeedsRework},
+        {"Media Cache", "Indice do cache de midia",
+         "O indice que aponta para o cache de midia.",
+         "Nada; e refeito junto com o cache.", RiskLevel::Green, RegenerationCost::NeedsRework},
+        {"Peak Files", "Formas de onda do audio",
+         "O desenho da onda sonora que aparece na linha do tempo, ja calculado.",
+         "Nada do audio original. O desenho e recalculado ao reabrir o projeto, o que demora um "
+         "pouco na primeira vez.",
+         RiskLevel::Green, RegenerationCost::NeedsRework},
+        {"Metadata Cache", "Cache de informacoes de midia",
+         "Dados sobre os arquivos de midia, guardados para nao reler tudo.",
+         "Nada permanente.", RiskLevel::Green, RegenerationCost::NeedsRework},
+
+        // Templates sao trabalho do usuario, ainda que morem ao lado do cache.
+        {"Motion Graphics Templates", "Seus templates de animacao",
+         "Modelos de animacao instalados ou criados por voce.",
+         "Os templates. Os que vieram da Adobe podem ser baixados de novo; os seus, nao.",
+         RiskLevel::Red, RegenerationCost::Permanent},
+        {"Team Projects Local Hub", "Projetos em equipe",
+         "Dados locais de projetos compartilhados.", "Trabalho que pode nao estar sincronizado.",
+         RiskLevel::Red, RegenerationCost::Permanent},
+    };
+
+    return profile;
+}
+
 }
 
 std::vector<core::AppProfile> app_profiles_catalog() {
-    std::vector<core::AppProfile> profiles{vscode_profile(), codex_profile(), claude_profile()};
+    std::vector<core::AppProfile> profiles{
+        vscode_profile(),
+        codex_profile(),
+        claude_profile(),
+        adobe_profile(),
+        chromium_profile("app.chrome", "Google Chrome",
+                         expand("%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default")),
+        chromium_profile("app.edge", "Microsoft Edge",
+                         expand("%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\Default")),
+    };
 
     std::erase_if(profiles, [](const AppProfile& profile) { return profile.root.empty(); });
     return profiles;

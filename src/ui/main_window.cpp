@@ -2,6 +2,7 @@
 
 #include "ui/presentation.hpp"
 
+#include <collectors/running_apps.hpp>
 #include <collectors/snapshot_collector.hpp>
 #include <monitor/action_log.hpp>
 #include <monitor/growth_report.hpp>
@@ -58,6 +59,45 @@ std::filesystem::path snapshot_database() {
 
 std::filesystem::path action_database() {
     return storage::default_data_directory() / "monitor" / "acoes.sqlite";
+}
+
+/// Quais programas conhecidos estao abertos e mexem nos caminhos afetados.
+///
+/// O mapa e curto e por caminho, nao por adivinhacao: so nomeia o programa
+/// quando ha ligacao clara entre a pasta e o executavel.
+QString running_apps_holding(const std::vector<std::string>& paths) {
+    struct Owner {
+        const char* path_marker;
+        const char* executable;
+        const char* display_name;
+    };
+
+    static constexpr std::array kOwners{
+        Owner{"\\Google\\Chrome", "chrome.exe", "O Google Chrome"},
+        Owner{"\\Microsoft\\Edge", "msedge.exe", "O Microsoft Edge"},
+        Owner{"\\Code", "Code.exe", "O Visual Studio Code"},
+        Owner{"\\Adobe", "Adobe Desktop Service.exe", "O Creative Cloud"},
+        Owner{"\\Claude", "Claude.exe", "O Claude"},
+        Owner{"\\Discord", "Discord.exe", "O Discord"},
+        Owner{"\\Spotify", "Spotify.exe", "O Spotify"},
+    };
+
+    QStringList found;
+    for (const auto& path : paths) {
+        for (const auto& owner : kOwners) {
+            if (path.find(owner.path_marker) == std::string::npos) {
+                continue;
+            }
+            if (collectors::is_running(owner.executable)) {
+                const auto name = QString::fromLatin1(owner.display_name);
+                if (!found.contains(name)) {
+                    found.append(name);
+                }
+            }
+        }
+    }
+
+    return found.join(QStringLiteral(", "));
 }
 
 QString action_kind_label(monitor::ActionKind kind) {
@@ -446,10 +486,24 @@ void MainWindow::clean_selected_finding() {
     if (!limitations.empty()) {
         details += QString::fromStdString(limitations) + QStringLiteral("\n\n");
     }
-    details += QStringLiteral(
-        "Os arquivos sao apagados de vez e o espaco e liberado na hora.\n\n"
-        "Programas abertos podem estar usando parte deles; esses ficam onde estao e o espaco "
-        "liberado sera menor que o estimado.");
+    details += QStringLiteral("Os arquivos sao apagados de vez e o espaco e liberado na hora.\n\n");
+
+    // Avisa antes, e nomeando o programa. "Arquivos em uso nao serao removidos"
+    // e vago; dizer que o Chrome esta aberto permite ao usuario decidir se
+    // fecha antes ou aceita liberar menos. O Zelo nunca encerra nada sozinho:
+    // isso custaria o trabalho nao salvo.
+    if (const auto abertos = running_apps_holding(affected); !abertos.isEmpty()) {
+        details += QStringLiteral(
+                       "%1 esta aberto agora. Os arquivos que ele estiver usando ficam onde "
+                       "estao, e o espaco liberado sera menor que a estimativa. Fechar o "
+                       "programa antes costuma liberar bem mais.\n\n")
+                       .arg(abertos);
+    } else {
+        details += QStringLiteral(
+            "Programas abertos podem estar usando parte deles; esses ficam onde estao e o "
+            "espaco liberado sera menor que o estimado.");
+    }
+
     confirmation.setInformativeText(details);
 
     auto* confirm = confirmation.addButton(QStringLiteral("Limpar"), QMessageBox::AcceptRole);

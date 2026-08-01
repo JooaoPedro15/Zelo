@@ -103,6 +103,72 @@ TEST_CASE("estado e credenciais de aplicativo sao vermelhos", "[app_profiles]") 
     }
 }
 
+// O erro classico de limpador: apagar a pasta do navegador inteira e levar
+// senha, favorito e extensao junto com o cache.
+TEST_CASE("senhas, favoritos e extensoes do navegador sao vermelhos", "[app_profiles]") {
+    const auto profiles = app_profiles_catalog();
+
+    const auto* chrome = profile_of(profiles, "app.chrome");
+    REQUIRE(chrome != nullptr);
+
+    for (const auto& protegido : {"Login Data", "Bookmarks", "History", "Web Data", "Extensions",
+                                  "Local Extension Settings", "Network", "IndexedDB",
+                                  "Local Storage", "Preferences"}) {
+        const auto* item = item_of(*chrome, protegido);
+        INFO("item: " << protegido);
+        REQUIRE(item != nullptr);
+        CHECK(item->risk == RiskLevel::Red);
+    }
+}
+
+TEST_CASE("cache de navegacao e verde", "[app_profiles]") {
+    const auto profiles = app_profiles_catalog();
+
+    const auto* chrome = profile_of(profiles, "app.chrome");
+    REQUIRE(chrome != nullptr);
+
+    for (const auto& seguro : {"Cache", "Code Cache", "GPUCache"}) {
+        const auto* item = item_of(*chrome, seguro);
+        INFO("item: " << seguro);
+        REQUIRE(item != nullptr);
+        CHECK(item->risk == RiskLevel::Green);
+    }
+}
+
+// Dentro de Service Worker convivem cache descartavel e o conteudo que faz um
+// site funcionar offline. Nao separar os dois com seguranca e motivo para nao
+// oferecer.
+TEST_CASE("dados de site offline nao sao tratados como cache", "[app_profiles]") {
+    const auto profiles = app_profiles_catalog();
+
+    const auto* chrome = profile_of(profiles, "app.chrome");
+    REQUIRE(chrome != nullptr);
+
+    const auto* worker = item_of(*chrome, "Service Worker");
+    REQUIRE(worker != nullptr);
+    CHECK(worker->risk == RiskLevel::Unknown);
+}
+
+// Cache de midia volta sozinho; template e trabalho do usuario. Os dois moram
+// na mesma pasta da Adobe.
+TEST_CASE("cache da Adobe e verde, mas templates nao", "[app_profiles]") {
+    const auto profiles = app_profiles_catalog();
+
+    const auto* adobe = profile_of(profiles, "app.adobe");
+    REQUIRE(adobe != nullptr);
+
+    for (const auto& seguro : {"Media Cache Files", "Peak Files", "Metadata Cache"}) {
+        const auto* item = item_of(*adobe, seguro);
+        INFO("item: " << seguro);
+        REQUIRE(item != nullptr);
+        CHECK(item->risk == RiskLevel::Green);
+    }
+
+    const auto* templates = item_of(*adobe, "Motion Graphics Templates");
+    REQUIRE(templates != nullptr);
+    CHECK(templates->risk == RiskLevel::Red);
+}
+
 TEST_CASE("caches reconhecidos sao verdes", "[app_profiles]") {
     const auto profiles = app_profiles_catalog();
 
