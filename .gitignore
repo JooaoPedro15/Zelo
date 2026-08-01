@@ -34,3 +34,6 @@ compile_commands.json
 # Sistema
 Thumbs.db
 desktop.ini
+
+# Log gerado ao rodar os testes na raiz do repositorio
+*.log
