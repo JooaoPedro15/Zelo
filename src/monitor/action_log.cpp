@@ -40,6 +40,8 @@ int to_int(ActionKind kind) {
         return 1;
     case ActionKind::Restored:
         return 2;
+    case ActionKind::CommandRun:
+        return 3;
     }
     return 0;
 }
@@ -50,6 +52,8 @@ ActionKind to_kind(int value) {
         return ActionKind::Quarantined;
     case 2:
         return ActionKind::Restored;
+    case 3:
+        return ActionKind::CommandRun;
     default:
         return ActionKind::Deleted;
     }

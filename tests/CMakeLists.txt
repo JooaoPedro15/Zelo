@@ -21,6 +21,7 @@
     collectors/security_collector_test.cpp
     collectors/disk_collector_test.cpp
     collectors/wmi_test.cpp
+    commands/official_commands_test.cpp
     storage/json_codec_test.cpp
     storage/history_store_test.cpp
     storage/logging_test.cpp

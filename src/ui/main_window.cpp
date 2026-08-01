@@ -4,6 +4,8 @@
 
 #include <collectors/running_apps.hpp>
 #include <collectors/snapshot_collector.hpp>
+#include <commands/command_catalog.hpp>
+#include <commands/command_runner.hpp>
 #include <monitor/action_log.hpp>
 #include <monitor/growth_alerts.hpp>
 #include <monitor/growth_report.hpp>
@@ -109,6 +111,8 @@ QString action_kind_label(monitor::ActionKind kind) {
         return QStringLiteral("em quarentena");
     case monitor::ActionKind::Restored:
         return QStringLiteral("restaurado");
+    case monitor::ActionKind::CommandRun:
+        return QStringLiteral("comando do Windows");
     }
     return QStringLiteral("acao");
 }
@@ -205,21 +209,30 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     splitter->setStretchFactor(0, 2);
     splitter->setStretchFactor(1, 3);
 
+    auto* growth_page = build_growth_tab();
+    auto* history_page = build_history_tab();
+
     tabs_ = new QTabWidget(central);
     tabs_->addTab(splitter, QStringLiteral("Analise"));
-    tabs_->addTab(build_growth_tab(), QStringLiteral("O que cresceu"));
-    tabs_->addTab(build_history_tab(), QStringLiteral("Historico"));
+    tabs_->addTab(growth_page, QStringLiteral("O que cresceu"));
+    tabs_->addTab(build_windows_tab(), QStringLiteral("Limpezas do Windows"));
+    tabs_->addTab(history_page, QStringLiteral("Historico"));
 
     // As abas sao remontadas ao serem abertas. A atividade observada muda
     // enquanto a janela fica aberta, e mostrar o estado do momento em que o
     // programa iniciou seria informacao velha.
-    connect(tabs_, &QTabWidget::currentChanged, this, [this](int index) {
-        if (index == 1) {
-            show_growth();
-        } else if (index == 2) {
-            show_history();
-        }
-    });
+    //
+    // A comparacao e pelo widget, nao pela posicao: inserir uma aba no meio nao
+    // pode fazer a janela reconstruir a pagina errada.
+    connect(tabs_, &QTabWidget::currentChanged, this,
+            [this, growth_page, history_page](int index) {
+                const QWidget* page = tabs_->widget(index);
+                if (page == growth_page) {
+                    show_growth();
+                } else if (page == history_page) {
+                    show_history();
+                }
+            });
 
     layout->addWidget(tabs_, 1);
 
@@ -248,6 +261,152 @@ void MainWindow::start_watching() {
             spdlog::info("observando {}", folder.string());
         }
     }
+}
+
+QWidget* MainWindow::build_windows_tab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    auto* intro = new QLabel(
+        QStringLiteral(
+            "<p>Estas sao as limpezas que a propria Microsoft mantem. O Zelo nao apaga nada "
+            "aqui: ele chama o programa do Windows e mostra a resposta.</p>"),
+        page);
+    intro->setWordWrap(true);
+    layout->addWidget(intro);
+
+    windows_commands_ = new QListWidget(page);
+    for (const auto& command : commands::command_catalog()) {
+        auto* item = new QListWidgetItem(QString::fromStdString(command.name), windows_commands_);
+        item->setData(Qt::UserRole, static_cast<int>(command.id));
+    }
+    connect(windows_commands_, &QListWidget::currentRowChanged, this,
+            &MainWindow::show_windows_command_details);
+    layout->addWidget(windows_commands_);
+
+    windows_output_ = new QTextBrowser(page);
+    layout->addWidget(windows_output_, 1);
+
+    windows_run_button_ = new QPushButton(QStringLiteral("Executar"), page);
+    windows_run_button_->setEnabled(false);
+    connect(windows_run_button_, &QPushButton::clicked, this,
+            &MainWindow::run_selected_windows_command);
+    layout->addWidget(windows_run_button_);
+
+    return page;
+}
+
+namespace {
+
+/// O comando selecionado, ou nulo quando nao ha selecao.
+const commands::OfficialCommand* selected_command(const QListWidget* list) {
+    const auto* item = list->currentItem();
+    if (item == nullptr) {
+        return nullptr;
+    }
+
+    const auto id = static_cast<commands::CommandId>(item->data(Qt::UserRole).toInt());
+    return &commands::command_by_id(id);
+}
+
+}
+
+void MainWindow::show_windows_command_details() {
+    const auto* command = selected_command(windows_commands_);
+    if (command == nullptr) {
+        windows_run_button_->setEnabled(false);
+        return;
+    }
+
+    windows_run_button_->setEnabled(true);
+
+    QString body = QStringLiteral("<p>%1</p>")
+                       .arg(QString::fromStdString(command->purpose).toHtmlEscaped());
+
+    if (command->requires_elevation && !commands::running_elevated()) {
+        body += QStringLiteral(
+            "<p style='color:#E68A00'>Este comando so funciona com o Zelo aberto como "
+            "administrador. Feche e abra de novo com o botao direito, em "
+            "\"Executar como administrador\".</p>");
+    }
+
+    if (!command->irreversible_effect.empty()) {
+        body += QStringLiteral("<p style='color:#C0392B'><b>Sem volta:</b> %1</p>")
+                    .arg(QString::fromStdString(command->irreversible_effect).toHtmlEscaped());
+    }
+
+    // Mostrar a linha exata tira o misterio: da para conferir o comando fora do
+    // Zelo antes de deixar rodar.
+    QString line = QString::fromStdString(command->executable);
+    for (const auto& argument : command->arguments) {
+        line += QLatin1Char(' ') + QString::fromStdString(argument);
+    }
+    body += QStringLiteral("<p style='color:gray'>Linha executada: <code>%1</code></p>")
+                .arg(line.toHtmlEscaped());
+
+    windows_output_->setHtml(body);
+}
+
+void MainWindow::run_selected_windows_command() {
+    const auto* command = selected_command(windows_commands_);
+    if (command == nullptr) {
+        return;
+    }
+
+    if (command->modifies_system) {
+        QMessageBox confirmation(this);
+        confirmation.setWindowTitle(QStringLiteral("Confirmar limpeza do Windows"));
+        confirmation.setTextFormat(Qt::RichText);
+        confirmation.setText(
+            QStringLiteral("<p>%1</p><p><b>Sem volta:</b> %2</p><p>Executar agora?</p>")
+                .arg(QString::fromStdString(command->purpose).toHtmlEscaped(),
+                     QString::fromStdString(command->irreversible_effect).toHtmlEscaped()));
+        confirmation.addButton(QStringLiteral("Executar"), QMessageBox::AcceptRole);
+        confirmation.addButton(QStringLiteral("Cancelar"), QMessageBox::RejectRole);
+        // O botao de partida e o de cancelar: apertar Enter sem ler nao pode
+        // acionar uma mudanca definitiva.
+        confirmation.setDefaultButton(qobject_cast<QPushButton*>(confirmation.buttons().last()));
+        confirmation.exec();
+
+        if (confirmation.buttonRole(confirmation.clickedButton()) != QMessageBox::AcceptRole) {
+            return;
+        }
+    }
+
+    windows_run_button_->setEnabled(false);
+    windows_output_->setHtml(QStringLiteral(
+        "<p>Executando. Uma limpeza do Windows pode levar varios minutos.</p>"));
+    QApplication::processEvents();
+
+    const auto result = commands::run_official_command(
+        commands::CommandRequest{.id = command->id, .confirmed = true});
+
+    QString body = QStringLiteral("<p><b>%1</b></p><p>%2</p>")
+                       .arg(QString::fromStdString(command->name).toHtmlEscaped(),
+                            QString::fromStdString(result.explanation).toHtmlEscaped());
+
+    if (!result.output.empty()) {
+        body += QStringLiteral("<pre style='white-space:pre-wrap'>%1</pre>")
+                    .arg(QString::fromStdString(result.output).toHtmlEscaped());
+    }
+
+    windows_output_->setHtml(body);
+    windows_run_button_->setEnabled(true);
+
+    // Registrar mesmo o que nao alterou nada: quem le o historico depois quer
+    // saber o que foi acionado, nao so o que deu certo.
+    monitor::ActionLog log{action_database()};
+    if (log.ok()) {
+        log.record(monitor::ActionRecord{
+            .kind = monitor::ActionKind::CommandRun,
+            .reason = command->name + " — " + result.explanation,
+            .target = command->executable,
+            .reversible = false,
+        });
+    }
+
+    spdlog::info("comando oficial {} terminou com codigo {}", command->executable,
+                 result.exit_code);
 }
 
 QWidget* MainWindow::build_history_tab() {

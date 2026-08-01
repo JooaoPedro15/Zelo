@@ -21,6 +21,7 @@ target_link_libraries(zelo_ui
         zelo_monitor
     PRIVATE
         zelo_collectors
+        zelo_commands
         zelo_storage
         spdlog::spdlog
         zelo_warnings

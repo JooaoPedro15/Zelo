@@ -57,6 +57,14 @@ private:
     /// Mostra o que mudou entre os dois retratos mais recentes.
     void show_growth();
 
+    QWidget* build_windows_tab();
+
+    /// Aciona a limpeza oficial escolhida. O Zelo nao apaga nada aqui: quem
+    /// remove e o proprio Windows, pelo caminho que a Microsoft mantem.
+    void run_selected_windows_command();
+
+    void show_windows_command_details();
+
     QWidget* build_history_tab();
 
     /// Lista o que o Zelo ja fez no computador, filtrado pela busca.
@@ -83,6 +91,10 @@ private:
     QLabel* growth_summary_ = nullptr;
     QTextBrowser* growth_ = nullptr;
     QPushButton* snapshot_button_ = nullptr;
+    QListWidget* windows_commands_ = nullptr;
+    QTextBrowser* windows_output_ = nullptr;
+    QPushButton* windows_run_button_ = nullptr;
+
     QTextBrowser* history_ = nullptr;
     QLineEdit* history_search_ = nullptr;
     QLabel* snapshot_progress_ = nullptr;

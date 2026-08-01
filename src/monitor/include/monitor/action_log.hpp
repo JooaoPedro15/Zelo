@@ -18,6 +18,10 @@ enum class ActionKind {
 
     /// Itens devolvidos da quarentena ao lugar de origem.
     Restored,
+
+    /// Uma limpeza oficial do Windows acionada pelo Zelo. Quem removeu foi o
+    /// proprio Windows; o registro guarda qual comando e o que ele respondeu.
+    CommandRun,
 };
 
 /// Uma acao registrada.
