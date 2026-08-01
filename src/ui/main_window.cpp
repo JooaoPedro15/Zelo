@@ -168,12 +168,45 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     tabs_->addTab(splitter, QStringLiteral("Analise"));
     tabs_->addTab(build_growth_tab(), QStringLiteral("O que cresceu"));
     tabs_->addTab(build_history_tab(), QStringLiteral("Historico"));
+
+    // As abas sao remontadas ao serem abertas. A atividade observada muda
+    // enquanto a janela fica aberta, e mostrar o estado do momento em que o
+    // programa iniciou seria informacao velha.
+    connect(tabs_, &QTabWidget::currentChanged, this, [this](int index) {
+        if (index == 1) {
+            show_growth();
+        } else if (index == 2) {
+            show_history();
+        }
+    });
+
     layout->addWidget(tabs_, 1);
 
     setCentralWidget(central);
 
     show_growth();
     show_history();
+    start_watching();
+}
+
+void MainWindow::start_watching() {
+    watcher_ = std::make_unique<monitor::FolderWatcher>();
+
+    // As raizes que concentram escrita de programa: e onde o espaco some sem o
+    // usuario perceber. O disco inteiro seria caro demais para observar, e o
+    // retrato ja cobre o resto.
+    const auto profile = collectors::collect_system_paths().user_profile;
+    if (profile.empty()) {
+        return;
+    }
+
+    const std::filesystem::path home(profile);
+
+    for (const auto& folder : {home / "AppData" / "Local", home / "AppData" / "Roaming"}) {
+        if (watcher_->watch(folder)) {
+            spdlog::info("observando {}", folder.string());
+        }
+    }
 }
 
 QWidget* MainWindow::build_history_tab() {
@@ -536,6 +569,42 @@ void MainWindow::take_snapshot() {
     show_growth();
 }
 
+QString MainWindow::describe_recent_activity() const {
+    if (watcher_ == nullptr) {
+        return {};
+    }
+
+    auto activity = watcher_->collect();
+    if (activity.empty()) {
+        return {};
+    }
+
+    std::sort(activity.begin(), activity.end(),
+              [](const monitor::FolderActivity& left, const monitor::FolderActivity& right) {
+                  return left.event_count > right.event_count;
+              });
+
+    QString body = QStringLiteral(
+        "<hr><p><b>Atividade desde que o Zelo foi aberto</b><br>"
+        "<span style='color:gray'>Onde houve escrita e quando. O tamanho nao aparece aqui: o "
+        "aviso do sistema informa qual arquivo mudou, nunca quanto ele ocupa — esse numero vem "
+        "dos retratos, que medem de verdade.</span></p><ul>");
+
+    for (std::size_t index = 0; index < std::min<std::size_t>(8, activity.size()); ++index) {
+        const auto& entry = activity[index];
+
+        body += QStringLiteral("<li><b>%1</b><br>%2 gravacoes em %3 arquivos, entre %4 e %5</li>")
+                    .arg(QString::fromStdString(entry.folder).toHtmlEscaped())
+                    .arg(entry.event_count)
+                    .arg(entry.distinct_files)
+                    .arg(QString::fromStdString(entry.first_seen),
+                         QString::fromStdString(entry.last_seen));
+    }
+
+    body += QStringLiteral("</ul>");
+    return body;
+}
+
 void MainWindow::show_growth() {
     const monitor::SnapshotStore store{snapshot_database()};
     if (!store.ok()) {
@@ -611,6 +680,8 @@ void MainWindow::show_growth() {
         "<p style='color:gray'><i>Cada pasta mostra o quanto ela cresceu por conta propria: o "
         "crescimento que vem de uma subpasta aparece na subpasta, para o mesmo espaco nao ser "
         "contado duas vezes.</i></p>");
+
+    body += describe_recent_activity();
 
     growth_->setHtml(body);
 }

@@ -16,10 +16,12 @@ target_link_libraries(zelo_ui
     PUBLIC
         Qt6::Widgets
         zelo_core
+        # O cabecalho da janela declara o observador de pastas, entao quem
+        # inclui a janela precisa enxergar o modulo.
+        zelo_monitor
     PRIVATE
         zelo_collectors
         zelo_storage
-        zelo_monitor
         spdlog::spdlog
         zelo_warnings
 )

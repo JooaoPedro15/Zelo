@@ -1,6 +1,9 @@
 #pragma once
 
 #include <core/usecases/quick_analysis.hpp>
+#include <monitor/folder_watcher.hpp>
+
+#include <memory>
 
 #include <QMainWindow>
 
@@ -59,6 +62,14 @@ private:
     /// Lista o que o Zelo ja fez no computador, filtrado pela busca.
     void show_history();
 
+    /// Passa a observar as pastas que mais recebem escrita, enquanto a janela
+    /// estiver aberta. E o que da hora ao crescimento: o retrato diz que uma
+    /// pasta cresceu, a observacao diz quando.
+    void start_watching();
+
+    /// Resumo do que foi escrito enquanto a janela esteve aberta.
+    [[nodiscard]] QString describe_recent_activity() const;
+
     QLabel* score_label_ = nullptr;
     QLabel* summary_label_ = nullptr;
     QProgressBar* score_bar_ = nullptr;
@@ -77,6 +88,9 @@ private:
     QLabel* snapshot_progress_ = nullptr;
 
     core::AnalysisResult result_;
+
+    /// Vive enquanto a janela existe: fechar o aplicativo encerra a observacao.
+    std::unique_ptr<monitor::FolderWatcher> watcher_;
 };
 
 }
