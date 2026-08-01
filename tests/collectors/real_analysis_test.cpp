@@ -20,6 +20,8 @@ std::string risk_name(RiskLevel risk) {
         return "amarelo";
     case RiskLevel::Red:
         return "vermelho";
+    case RiskLevel::Unknown:
+        return "desconhecido";
     }
     return "desconhecido";
 }

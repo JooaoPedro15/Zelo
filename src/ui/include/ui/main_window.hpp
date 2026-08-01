@@ -5,6 +5,7 @@
 #include <QMainWindow>
 
 class QLabel;
+class QLineEdit;
 class QListWidget;
 class QProgressBar;
 class QPushButton;
@@ -53,6 +54,11 @@ private:
     /// Mostra o que mudou entre os dois retratos mais recentes.
     void show_growth();
 
+    QWidget* build_history_tab();
+
+    /// Lista o que o Zelo ja fez no computador, filtrado pela busca.
+    void show_history();
+
     QLabel* score_label_ = nullptr;
     QLabel* summary_label_ = nullptr;
     QProgressBar* score_bar_ = nullptr;
@@ -66,6 +72,8 @@ private:
     QLabel* growth_summary_ = nullptr;
     QTextBrowser* growth_ = nullptr;
     QPushButton* snapshot_button_ = nullptr;
+    QTextBrowser* history_ = nullptr;
+    QLineEdit* history_search_ = nullptr;
     QLabel* snapshot_progress_ = nullptr;
 
     core::AnalysisResult result_;

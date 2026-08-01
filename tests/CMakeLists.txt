@@ -29,6 +29,7 @@ add_executable(zelo_tests
     monitor/real_snapshot_test.cpp
     monitor/growth_report_test.cpp
     monitor/snapshot_flow_test.cpp
+    monitor/action_log_test.cpp
     ui/presentation_test.cpp
 )
 

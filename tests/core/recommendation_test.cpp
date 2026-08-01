@@ -81,6 +81,11 @@ TEST_CASE("o aplicativo nunca executa recomendacao vermelha", "[recommendation]"
 
     recommendation.risk = RiskLevel::Red;
     CHECK_FALSE(app_may_execute(recommendation));
+
+    // Nao saber o que ha num lugar nao autoriza mexer nele. E o oposto: e o
+    // motivo mais forte para nao mexer.
+    recommendation.risk = RiskLevel::Unknown;
+    CHECK_FALSE(app_may_execute(recommendation));
 }
 
 // Um campo esquecido nao pode passar silenciosamente: o padrao do modelo e o

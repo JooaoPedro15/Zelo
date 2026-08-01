@@ -3,6 +3,7 @@
 #include "ui/presentation.hpp"
 
 #include <collectors/snapshot_collector.hpp>
+#include <monitor/action_log.hpp>
 #include <monitor/growth_report.hpp>
 #include <monitor/snapshot_store.hpp>
 #include <monitor/snapshot_taker.hpp>
@@ -22,6 +23,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QIcon>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPainter>
@@ -46,6 +48,28 @@ QString section(const QString& title, const QString& body) {
         return {};
     }
     return QStringLiteral("<p><b>%1</b><br>%2</p>").arg(title, body);
+}
+
+/// Onde o monitor guarda os retratos. Fica junto dos demais dados do Zelo, e a
+/// varredura exclui essa pasta de proposito.
+std::filesystem::path snapshot_database() {
+    return storage::default_data_directory() / "monitor" / "retratos.sqlite";
+}
+
+std::filesystem::path action_database() {
+    return storage::default_data_directory() / "monitor" / "acoes.sqlite";
+}
+
+QString action_kind_label(monitor::ActionKind kind) {
+    switch (kind) {
+    case monitor::ActionKind::Deleted:
+        return QStringLiteral("apagado");
+    case monitor::ActionKind::Quarantined:
+        return QStringLiteral("em quarentena");
+    case monitor::ActionKind::Restored:
+        return QStringLiteral("restaurado");
+    }
+    return QStringLiteral("acao");
 }
 
 /// Um circulo colorido para indicar o risco ao lado do titulo do achado.
@@ -143,11 +167,79 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     tabs_ = new QTabWidget(central);
     tabs_->addTab(splitter, QStringLiteral("Analise"));
     tabs_->addTab(build_growth_tab(), QStringLiteral("O que cresceu"));
+    tabs_->addTab(build_history_tab(), QStringLiteral("Historico"));
     layout->addWidget(tabs_, 1);
 
     setCentralWidget(central);
 
     show_growth();
+    show_history();
+}
+
+QWidget* MainWindow::build_history_tab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    auto* search_row = new QHBoxLayout;
+    search_row->addWidget(new QLabel(QStringLiteral("Procurar:"), page));
+
+    history_search_ = new QLineEdit(page);
+    history_search_->setPlaceholderText(QStringLiteral("pasta ou motivo"));
+    connect(history_search_, &QLineEdit::textChanged, this, &MainWindow::show_history);
+    search_row->addWidget(history_search_, 1);
+
+    layout->addLayout(search_row);
+
+    history_ = new QTextBrowser(page);
+    layout->addWidget(history_, 1);
+
+    return page;
+}
+
+void MainWindow::show_history() {
+    const monitor::ActionLog log{action_database()};
+    if (!log.ok()) {
+        history_->setHtml(QStringLiteral("<p>O historico nao pode ser aberto.</p>"));
+        return;
+    }
+
+    const auto term = history_search_->text().trimmed().toStdString();
+    const auto actions = term.empty() ? log.recent() : log.search(term);
+
+    if (actions.empty()) {
+        history_->setHtml(
+            term.empty()
+                ? QStringLiteral("<p>Nenhuma limpeza foi feita ainda.</p>")
+                : QStringLiteral("<p>Nada encontrado para esse termo.</p>"));
+        return;
+    }
+
+    QString body = QStringLiteral("<p><b>Total liberado ate agora: %1</b></p>")
+                       .arg(QString::fromStdString(core::format_bytes(log.total_freed_bytes())));
+
+    body += QStringLiteral("<table cellspacing='0' cellpadding='6' width='100%'>");
+    for (const auto& action : actions) {
+        body += QStringLiteral(
+                    "<tr><td valign='top'><b>%1</b><br><span style='color:gray'>%2</span></td>"
+                    "<td valign='top'>%3<br><span style='color:gray'>%4</span></td></tr>")
+                    .arg(QString::fromStdString(action.reason).toHtmlEscaped(),
+                         QString::fromStdString(action.at),
+                         QStringLiteral("%1 arquivos, %2 (%3)")
+                             .arg(action.item_count)
+                             .arg(QString::fromStdString(core::format_bytes(action.bytes)),
+                                  action_kind_label(action.kind)),
+                         QString::fromStdString(action.target).toHtmlEscaped());
+    }
+    body += QStringLiteral("</table>");
+
+    // Ser explicito sobre isso e o compromisso do projeto: nunca prometer
+    // devolver o que ja nao existe.
+    body += QStringLiteral(
+        "<p style='color:gray'><i>O historico registra o que foi feito. Arquivos apagados de vez "
+        "nao podem ser devolvidos por aqui — quando eles voltam, e o proprio programa dono que os "
+        "recria.</i></p>");
+
+    history_->setHtml(body);
 }
 
 QWidget* MainWindow::build_growth_tab() {
@@ -240,7 +332,10 @@ void MainWindow::update_action_button(int index) {
     // e desfazer. Nos demais fica escondido: botao cinza sugere que existe uma
     // acao quando, para a maioria dos achados, nao existe nenhuma que o
     // aplicativo deva tomar sozinho.
-    const bool cleanable = recommendation != nullptr &&
+    // Vermelho e desconhecido nunca ganham botao. O primeiro porque o
+    // aplicativo nao deve agir; o segundo porque ele nao sabe o que ha ali, e
+    // nao saber e o motivo mais forte para nao mexer.
+    const bool cleanable = recommendation != nullptr && core::app_may_execute(*recommendation) &&
                            (recommendation->rule_id == "storage.excessive-temporary-files" ||
                             recommendation->rule_id == "storage.reclaimable-location");
 
@@ -352,7 +447,21 @@ void MainWindow::clean_selected_finding() {
                       .arg(outcome.skipped.size());
     }
 
+    // Sem quarentena, o registro e a unica rastreabilidade que sobra. Ele nao
+    // desfaz nada — e justamente por isso a acao precisa ficar anotada.
+    monitor::ActionLog log{action_database()};
+    log.record(monitor::ActionRecord{
+        .kind = monitor::ActionKind::Deleted,
+        .reason = title,
+        .target = affected.empty() ? std::string{"arquivos temporarios do sistema"} : affected.front(),
+        .item_count = outcome.removed_count,
+        .bytes = outcome.freed_bytes,
+        .skipped_count = outcome.skipped.size(),
+        .reversible = false,
+    });
+
     QMessageBox::information(this, QStringLiteral("Limpeza concluida"), report);
+    show_history();
 
     // O botao volta a funcionar antes da reanalise. Sem isto, limpar um achado
     // deixava todos os outros sem acao.
@@ -364,12 +473,6 @@ void MainWindow::clean_selected_finding() {
 }
 
 namespace {
-
-/// Onde o monitor guarda os retratos. Fica junto dos demais dados do Zelo, e a
-/// varredura exclui essa pasta de proposito.
-std::filesystem::path snapshot_database() {
-    return storage::default_data_directory() / "monitor" / "retratos.sqlite";
-}
 
 QString attribution_label(monitor::AttributionConfidence confidence) {
     switch (confidence) {

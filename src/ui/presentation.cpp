@@ -12,8 +12,12 @@ QString risk_label(core::RiskLevel risk) {
         return QStringLiteral("Revise antes");
     case core::RiskLevel::Red:
         return QStringLiteral("Apenas informativo");
+    case core::RiskLevel::Unknown:
+        // Dizer que nao sabe e mais util do que um rotulo generico: avisa o
+        // usuario de que a decisao ali e dele, sem fingir uma avaliacao.
+        return QStringLiteral("Conteudo nao identificado");
     }
-    return QStringLiteral("Apenas informativo");
+    return QStringLiteral("Conteudo nao identificado");
 }
 
 QColor risk_color(core::RiskLevel risk) {
@@ -24,8 +28,11 @@ QColor risk_color(core::RiskLevel risk) {
         return QColor{0xE6, 0x8A, 0x00};
     case core::RiskLevel::Red:
         return QColor{0xC6, 0x28, 0x28};
+    case core::RiskLevel::Unknown:
+        // Cinza: nao e alarme nem permissao, e ausencia de avaliacao.
+        return QColor{0x75, 0x75, 0x75};
     }
-    return QColor{0xC6, 0x28, 0x28};
+    return QColor{0x75, 0x75, 0x75};
 }
 
 QString severity_label(core::Severity severity) {
