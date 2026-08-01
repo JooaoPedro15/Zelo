@@ -28,6 +28,20 @@ struct VolumeInfo {
     }
 };
 
+/// De onde o Windows tirou o item de inicializacao.
+///
+/// Precisa ser guardado junto com o item: desativar e ligar o interruptor certo,
+/// e o interruptor de uma chave Run nao serve para um atalho na pasta de
+/// inicializacao.
+enum class StartupOrigin {
+    UserRun,
+    UserRun32,
+    MachineRun,
+    MachineRun32,
+    UserFolder,
+    MachineFolder,
+};
+
 struct StartupItemInfo {
     std::string name;
     std::string publisher;
@@ -36,6 +50,12 @@ struct StartupItemInfo {
     /// Antivirus, drivers, componentes de audio e video, ferramentas de
     /// hardware. O app nunca sugere desativar estes.
     bool essential = false;
+
+    StartupOrigin origin = StartupOrigin::UserRun;
+
+    /// Falso quando o item ja esta desativado. Item desativado continua listado
+    /// porque desativar nao e apagar: ele precisa poder ser ligado de volta.
+    bool enabled = true;
 };
 
 struct TemporaryFilesInfo {

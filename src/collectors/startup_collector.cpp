@@ -2,6 +2,8 @@
 
 #include "collectors/detail/text.hpp"
 
+#include <commands/startup_control.hpp>
+
 #include <array>
 #include <filesystem>
 #include <string_view>
@@ -19,6 +21,7 @@ struct RunKey {
     HKEY hive;
     const wchar_t* subkey;
     REGSAM view;
+    core::StartupOrigin origin;
 };
 
 /// Ambas as visoes do registro: um programa de 32 bits instalado num Windows de
@@ -30,10 +33,10 @@ std::array<RunKey, 4> run_keys() {
     constexpr const wchar_t* kRunPath = LR"(SOFTWARE\Microsoft\Windows\CurrentVersion\Run)";
 
     return {
-        RunKey{HKEY_LOCAL_MACHINE, kRunPath, KEY_WOW64_64KEY},
-        RunKey{HKEY_LOCAL_MACHINE, kRunPath, KEY_WOW64_32KEY},
-        RunKey{HKEY_CURRENT_USER, kRunPath, KEY_WOW64_64KEY},
-        RunKey{HKEY_CURRENT_USER, kRunPath, KEY_WOW64_32KEY},
+        RunKey{HKEY_LOCAL_MACHINE, kRunPath, KEY_WOW64_64KEY, core::StartupOrigin::MachineRun},
+        RunKey{HKEY_LOCAL_MACHINE, kRunPath, KEY_WOW64_32KEY, core::StartupOrigin::MachineRun32},
+        RunKey{HKEY_CURRENT_USER, kRunPath, KEY_WOW64_64KEY, core::StartupOrigin::UserRun},
+        RunKey{HKEY_CURRENT_USER, kRunPath, KEY_WOW64_32KEY, core::StartupOrigin::UserRun32},
     };
 }
 
@@ -82,6 +85,8 @@ void read_run_key(const RunKey& key, std::vector<core::StartupItemInfo>& items) 
         item.name = to_utf8(std::wstring_view(name.data(), name_size));
         item.path = executable_from_command(to_utf8(command));
         item.essential = looks_essential(item.name, item.path);
+        item.origin = key.origin;
+        item.enabled = commands::startup_is_enabled(item.name, item.origin);
 
         if (!item.name.empty()) {
             items.push_back(std::move(item));
@@ -102,7 +107,7 @@ std::filesystem::path startup_folder(const wchar_t* variable, const wchar_t* suf
     return std::filesystem::path(std::wstring(buffer.data(), written)) / suffix;
 }
 
-void read_startup_folder(const std::filesystem::path& folder,
+void read_startup_folder(const std::filesystem::path& folder, core::StartupOrigin origin,
                          std::vector<core::StartupItemInfo>& items) {
     if (folder.empty()) {
         return;
@@ -123,6 +128,11 @@ void read_startup_folder(const std::filesystem::path& folder,
         item.name = path.stem().string();
         item.path = path.string();
         item.essential = looks_essential(item.name, item.path);
+        item.origin = origin;
+
+        // Para atalho, o Windows guarda o interruptor sob o nome do arquivo com
+        // extensao — nao sob o nome exibido.
+        item.enabled = commands::startup_is_enabled(path.filename().string(), item.origin);
 
         items.push_back(std::move(item));
     }
@@ -203,9 +213,11 @@ std::vector<core::StartupItemInfo> StartupCollector::collect() const {
     }
 
     read_startup_folder(
-        startup_folder(L"APPDATA", LR"(Microsoft\Windows\Start Menu\Programs\Startup)"), items);
+        startup_folder(L"APPDATA", LR"(Microsoft\Windows\Start Menu\Programs\Startup)"),
+        core::StartupOrigin::UserFolder, items);
     read_startup_folder(
-        startup_folder(L"ProgramData", LR"(Microsoft\Windows\Start Menu\Programs\StartUp)"), items);
+        startup_folder(L"ProgramData", LR"(Microsoft\Windows\Start Menu\Programs\StartUp)"),
+        core::StartupOrigin::MachineFolder, items);
 
     return items;
 }

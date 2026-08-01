@@ -45,6 +45,11 @@ private:
 
     void update_action_button(int index);
 
+    /// Abre a lista de programas que iniciam com o Windows para o usuario ligar
+    /// e desligar cada um. Desativar aqui nao desinstala nada e se desfaz
+    /// marcando a caixa de novo.
+    void manage_startup();
+
     /// O achado selecionado, ou nulo quando nao ha selecao.
     [[nodiscard]] const core::Recommendation* selected_recommendation() const;
 

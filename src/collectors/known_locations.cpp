@@ -54,8 +54,28 @@ struct CatalogEntry {
 /// As pastas de temporarios do sistema nao entram aqui: elas tem coletor
 /// proprio, que sabe descobrir onde o Windows as coloca. Repeti-las produziria
 /// dois achados para os mesmos arquivos e um total somado em dobro.
-const std::array<CatalogEntry, 27>& catalog() {
-    static const std::array<CatalogEntry, 27> entries{{
+const std::array<CatalogEntry, 29>& catalog() {
+    static const std::array<CatalogEntry, 29> entries{{
+        // --- O proprio Cleaner ---
+        //
+        // A quarentena foi removida do produto: limpar passou a apagar de vez.
+        // O que ficou guardado antes disso continua ocupando disco sem servir
+        // para nada, e sem aparecer em lugar nenhum — a varredura exclui a
+        // pasta do proprio programa. Um limpador que esconde os proprios restos
+        // e o pior caso possivel aqui.
+        {"cleaner.quarantine", "Quarentena antiga do Cleaner",
+         "%LOCALAPPDATA%\\Cleaner\\quarentena", "Cleaner",
+         "Arquivos que versoes anteriores do Cleaner moveram para uma quarentena que nao existe "
+         "mais. Eles nao voltam sozinhos para lugar nenhum.",
+         "Nada que o computador use. Sao sobras que ja tinham sido aprovadas para remocao.",
+         RegenerationCost::Permanent, RiskLevel::Green},
+
+        {"cleaner.quarantine.legacy", "Quarentena do nome anterior",
+         "%LOCALAPPDATA%\\Zelo\\quarentena", "Cleaner",
+         "A mesma quarentena, guardada quando o programa ainda se chamava Zelo.",
+         "Nada que o computador use. Sao sobras que ja tinham sido aprovadas para remocao.",
+         RegenerationCost::Permanent, RiskLevel::Green},
+
         // --- Windows ---
         {"windows.update.download", "Instaladores de atualizacao ja aplicados",
          "%SystemRoot%\\SoftwareDistribution\\Download", "Windows Update",

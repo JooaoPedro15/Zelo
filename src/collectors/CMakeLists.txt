@@ -48,6 +48,7 @@ target_link_libraries(cleaner_collectors
     PUBLIC
         cleaner_core
     PRIVATE
+        cleaner_commands
         cleaner_scanner
         wevtapi
         wbemuuid

@@ -5,7 +5,9 @@
 #include <collectors/running_apps.hpp>
 #include <collectors/snapshot_collector.hpp>
 #include <collectors/cloud_folders.hpp>
+#include <collectors/startup_collector.hpp>
 #include <commands/command_catalog.hpp>
+#include <commands/startup_control.hpp>
 #include <commands/command_runner.hpp>
 #include <monitor/action_log.hpp>
 #include <monitor/growth_alerts.hpp>
@@ -25,6 +27,7 @@
 
 #include <QApplication>
 #include <QDateTime>
+#include <QDialog>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -266,6 +269,142 @@ void MainWindow::start_watching() {
         if (watcher_->watch(folder)) {
             spdlog::info("observando {}", folder.string());
         }
+    }
+}
+
+void MainWindow::manage_startup() {
+    const auto items = collectors::StartupCollector{}.collect();
+    if (items.empty()) {
+        QMessageBox::information(this, QStringLiteral("Inicializacao"),
+                                 QStringLiteral("Nada foi encontrado na inicializacao."));
+        return;
+    }
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(QStringLiteral("O que inicia com o Windows"));
+    dialog.resize(680, 520);
+
+    auto* layout = new QVBoxLayout(&dialog);
+
+    auto* intro = new QLabel(
+        QStringLiteral(
+            "<p>Desmarque o que nao precisa abrir junto com o computador. "
+            "<b>Nada e desinstalado</b>: o programa continua no lugar e volta a iniciar "
+            "quando voce marcar de novo.</p>"
+            "<p style='color:gray'>Itens essenciais — protecao, audio, video e drivers — "
+            "aparecem bloqueados de proposito.</p>"),
+        &dialog);
+    intro->setWordWrap(true);
+    layout->addWidget(intro);
+
+    auto* list = new QListWidget(&dialog);
+    for (const auto& item : items) {
+        auto* row = new QListWidgetItem(
+            QStringLiteral("%1%2\n%3")
+                .arg(QString::fromStdString(item.name),
+                     item.essential ? QStringLiteral("  (essencial)") : QString(),
+                     QString::fromStdString(item.path)),
+            list);
+
+        row->setCheckState(item.enabled ? Qt::Checked : Qt::Unchecked);
+
+        if (item.essential) {
+            // Bloqueado em vez de escondido: o usuario precisa ver que o item
+            // existe e por que o Cleaner nao mexe nele.
+            row->setFlags(row->flags() & ~Qt::ItemIsEnabled);
+        }
+    }
+    layout->addWidget(list, 1);
+
+    auto* buttons = new QHBoxLayout;
+    auto* apply = new QPushButton(QStringLiteral("Aplicar"), &dialog);
+    auto* cancel = new QPushButton(QStringLiteral("Cancelar"), &dialog);
+    buttons->addStretch(1);
+    buttons->addWidget(cancel);
+    buttons->addWidget(apply);
+    layout->addLayout(buttons);
+
+    connect(cancel, &QPushButton::clicked, &dialog, &QDialog::reject);
+    connect(apply, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    std::size_t desativados = 0;
+    std::size_t religados = 0;
+    std::size_t negados = 0;
+
+    for (int index = 0; index < list->count(); ++index) {
+        const auto& item = items.at(static_cast<std::size_t>(index));
+        if (item.essential) {
+            continue;
+        }
+
+        const bool wanted = list->item(index)->checkState() == Qt::Checked;
+        if (wanted == item.enabled) {
+            continue;
+        }
+
+        // Atalho da pasta de inicializacao e identificado pelo nome do arquivo
+        // com extensao; entrada de registro, pelo nome do valor.
+        const bool folder = item.origin == core::StartupOrigin::UserFolder ||
+                            item.origin == core::StartupOrigin::MachineFolder;
+        const std::string key =
+            folder ? std::filesystem::path(item.path).filename().string() : item.name;
+
+        switch (commands::set_startup_enabled(key, item.origin, wanted)) {
+        case commands::StartupChange::Disabled:
+            ++desativados;
+            break;
+        case commands::StartupChange::Enabled:
+            ++religados;
+            break;
+        case commands::StartupChange::Denied:
+            ++negados;
+            break;
+        case commands::StartupChange::Unchanged:
+        case commands::StartupChange::Failed:
+            break;
+        }
+    }
+
+    QString resumo;
+    if (desativados > 0) {
+        resumo += QStringLiteral("%1 programas deixaram de iniciar com o Windows.\n").arg(desativados);
+    }
+    if (religados > 0) {
+        resumo += QStringLiteral("%1 voltaram a iniciar.\n").arg(religados);
+    }
+    if (negados > 0) {
+        resumo += QStringLiteral(
+                      "%1 valem para todos os usuarios e exigem o Cleaner aberto como "
+                      "administrador.\n")
+                      .arg(negados);
+    }
+    if (resumo.isEmpty()) {
+        resumo = QStringLiteral("Nada mudou.");
+    } else {
+        resumo += QStringLiteral("\nO efeito aparece na proxima vez que o computador ligar.");
+    }
+
+    QMessageBox::information(this, QStringLiteral("Inicializacao"), resumo);
+
+    if (desativados > 0 || religados > 0) {
+        monitor::ActionLog log{action_database()};
+        if (log.ok()) {
+            log.record(monitor::ActionRecord{
+                .kind = monitor::ActionKind::CommandRun,
+                .reason = "Mudou o que inicia com o Windows",
+                .target = "inicializacao",
+                .item_count = desativados + religados,
+                // A unica acao do Cleaner que se desfaz por completo: basta
+                // marcar a caixa de novo.
+                .reversible = true,
+            });
+        }
+
+        start_analysis();
     }
 }
 
@@ -749,12 +888,27 @@ void MainWindow::update_action_button(int index) {
     // Vermelho e desconhecido nunca ganham botao. O primeiro porque o
     // aplicativo nao deve agir; o segundo porque ele nao sabe o que ha ali, e
     // nao saber e o motivo mais forte para nao mexer.
+    // Achado de perfil de aplicativo entra aqui pelo mesmo criterio dos demais:
+    // o que decide e o risco, nao a regra que produziu o achado. Ficar de fora
+    // fazia o maior item da lista — gigabytes de sobra de ferramenta, marcados
+    // como seguros — nao ter botao nenhum.
     const bool cleanable = recommendation != nullptr && core::app_may_execute(*recommendation) &&
+                           !recommendation->affected_paths.empty() &&
                            (recommendation->rule_id == "storage.excessive-temporary-files" ||
-                            recommendation->rule_id == "storage.reclaimable-location");
+                            recommendation->rule_id == "storage.reclaimable-location" ||
+                            recommendation->rule_id == "apps.profile-item");
 
-    action_button_->setVisible(cleanable);
-    if (cleanable) {
+    // Inicializacao nao libera espaco, entao nao passa pelo criterio de limpeza.
+    // Mas tem uma acao segura e que se desfaz por completo, e um achado sem
+    // nenhum caminho de saida e so uma reclamacao.
+    const bool startup = recommendation != nullptr &&
+                         recommendation->rule_id == "startup.too-many-items";
+
+    action_button_->setVisible(cleanable || startup);
+
+    if (startup) {
+        action_button_->setText(QStringLiteral("Escolher o que inicia com o Windows"));
+    } else if (cleanable) {
         action_button_->setText(
             QStringLiteral("Limpar — libera %1")
                 .arg(QString::fromStdString(core::format_bytes(recommendation->reclaimable_bytes))));
@@ -764,6 +918,11 @@ void MainWindow::update_action_button(int index) {
 void MainWindow::clean_selected_finding() {
     const core::Recommendation* recommendation = selected_recommendation();
     if (recommendation == nullptr) {
+        return;
+    }
+
+    if (recommendation->rule_id == "startup.too-many-items") {
+        manage_startup();
         return;
     }
 

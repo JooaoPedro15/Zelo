@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <commands/startup_control.hpp>
 #include <collectors/startup_collector.hpp>
 
 using cleaner::collectors::StartupCollector;
@@ -63,4 +64,27 @@ TEST_CASE("a coleta marca disponibilidade mesmo sem itens", "[startup_collector]
     REQUIRE(collector.collect_into(snapshot));
 
     CHECK(snapshot.startup_available);
+}
+
+// Desativar item de inicializacao e a unica acao do Cleaner que se desfaz por
+// completo. O teste liga e desliga um nome proprio, que nao existe na
+// inicializacao de ninguem, e devolve o registro ao estado anterior.
+TEST_CASE("o interruptor de inicializacao liga e desliga", "[startup_collector][integration]") {
+    const std::string nome = "CleanerTesteInterruptor";
+    const auto origem = cleaner::core::StartupOrigin::UserRun;
+
+    // Nome nunca visto nasce ligado: ausencia de registro nao e desativacao.
+    CHECK(cleaner::commands::startup_is_enabled(nome, origem));
+
+    REQUIRE(cleaner::commands::set_startup_enabled(nome, origem, false) ==
+            cleaner::commands::StartupChange::Disabled);
+    CHECK_FALSE(cleaner::commands::startup_is_enabled(nome, origem));
+
+    // Pedir de novo o mesmo estado nao escreve nada.
+    CHECK(cleaner::commands::set_startup_enabled(nome, origem, false) ==
+          cleaner::commands::StartupChange::Unchanged);
+
+    REQUIRE(cleaner::commands::set_startup_enabled(nome, origem, true) ==
+            cleaner::commands::StartupChange::Enabled);
+    CHECK(cleaner::commands::startup_is_enabled(nome, origem));
 }
