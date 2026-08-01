@@ -131,13 +131,13 @@ int simulate_cleanup() {
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("Cleaner"));
-    QApplication::setApplicationVersion(QStringLiteral("0.2.0"));
+    QApplication::setApplicationVersion(QStringLiteral("0.3.0"));
     QApplication::setOrganizationName(QStringLiteral("Cleaner"));
 
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        QStringLiteral("Cleaner — analisa e explica a saude do seu Windows. Alteracoes so acontecem "
-                       "com autorizacao explicita, e o que sai vai para a quarentena."));
+        QStringLiteral("Cleaner — analisa, explica e acompanha o espaco do seu Windows. "
+                       "Alteracoes so acontecem com autorizacao explicita, e ficam registradas."));
     parser.addHelpOption();
     parser.addVersionOption();
 

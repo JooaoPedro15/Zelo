@@ -1209,9 +1209,12 @@ void MainWindow::show_details(int index) {
         html += QStringLiteral("<p><b>Itens envolvidos</b><ul>%1</ul></p>").arg(paths);
     }
 
+    // O texto antigo dizia que nada era alterado. Isso deixou de ser verdade
+    // quando a limpeza passou a apagar de fato, e um aviso desatualizado e pior
+    // do que aviso nenhum: ele convida a aprovar sem ler.
     html += QStringLiteral(
-        "<p style='color:#777'><i>Esta versao do Cleaner apenas analisa e explica. "
-        "Nenhuma alteracao e feita no computador.</i></p>");
+        "<p style='color:#777'><i>Nada e removido sem voce apertar o botao e confirmar a lista. "
+        "O que sai, sai de vez, e fica registrado no historico.</i></p>");
 
     details_->setHtml(html);
 }
