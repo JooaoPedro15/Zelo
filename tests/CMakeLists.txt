@@ -1,4 +1,4 @@
-add_executable(zelo_tests
+﻿add_executable(zelo_tests
     qt_environment.cpp
     smoke/modules_smoke_test.cpp
     core/protected_paths_test.cpp
@@ -30,6 +30,7 @@ add_executable(zelo_tests
     monitor/snapshot_taker_test.cpp
     monitor/real_snapshot_test.cpp
     monitor/growth_report_test.cpp
+    monitor/growth_alerts_test.cpp
     monitor/snapshot_flow_test.cpp
     monitor/action_log_test.cpp
     monitor/folder_watcher_test.cpp
@@ -56,8 +57,8 @@ target_link_libraries(zelo_tests PRIVATE
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
-# Os testes de apresentação usam QString e QColor, então o binário carrega as
-# DLLs do Qt. DL_PATHS as coloca no PATH tanto na descoberta quanto na execução.
+# Os testes de apresentaÃ§Ã£o usam QString e QColor, entÃ£o o binÃ¡rio carrega as
+# DLLs do Qt. DL_PATHS as coloca no PATH tanto na descoberta quanto na execuÃ§Ã£o.
 catch_discover_tests(zelo_tests
     DL_PATHS "$<TARGET_FILE_DIR:Qt6::Core>"
 )

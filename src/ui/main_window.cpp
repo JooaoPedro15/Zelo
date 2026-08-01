@@ -5,6 +5,7 @@
 #include <collectors/running_apps.hpp>
 #include <collectors/snapshot_collector.hpp>
 #include <monitor/action_log.hpp>
+#include <monitor/growth_alerts.hpp>
 #include <monitor/growth_report.hpp>
 #include <monitor/snapshot_store.hpp>
 #include <monitor/snapshot_taker.hpp>
@@ -690,6 +691,18 @@ void MainWindow::show_growth() {
 
     const auto report = monitor::build_growth_report(*diff);
 
+    QString warnings;
+    if (const auto atual = store.latest("C:"); atual.has_value()) {
+        for (const auto& alert : monitor::evaluate_alerts(*atual, report)) {
+            warnings += QStringLiteral(
+                            "<p style='color:#E68A00'><b>%1</b><br>%2<br>"
+                            "<span style='color:gray'>%3</span></p>")
+                            .arg(QString::fromStdString(alert.title).toHtmlEscaped(),
+                                 QString::fromStdString(alert.evidence).toHtmlEscaped(),
+                                 QString::fromStdString(alert.suggested_action).toHtmlEscaped());
+        }
+    }
+
     const bool lost = report.free_space_delta < 0;
     const auto amount = static_cast<std::uint64_t>(std::abs(report.free_space_delta));
 
@@ -699,7 +712,7 @@ void MainWindow::show_growth() {
                  lost ? QStringLiteral("perdeu") : QStringLiteral("recuperou"),
                  QString::fromStdString(core::format_bytes(amount))));
 
-    QString body;
+    QString body = warnings;
 
     if (report.items.empty()) {
         body += QStringLiteral("<p>Nenhuma pasta cresceu de forma relevante no periodo.</p>");

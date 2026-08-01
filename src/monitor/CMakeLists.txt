@@ -1,11 +1,13 @@
-add_library(zelo_monitor STATIC
+﻿add_library(zelo_monitor STATIC
     snapshot_store.cpp
     snapshot_taker.cpp
     growth_report.cpp
+    growth_alerts.cpp
     action_log.cpp
     folder_watcher.cpp
     include/monitor/action_log.hpp
     include/monitor/folder_watcher.hpp
+    include/monitor/growth_alerts.hpp
     include/monitor/growth_report.hpp
     include/monitor/snapshot.hpp
     include/monitor/snapshot_store.hpp
