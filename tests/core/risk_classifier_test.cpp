@@ -3,10 +3,10 @@
 
 #include <vector>
 
-using zelo::core::ActionCategory;
-using zelo::core::ProtectedPaths;
-using zelo::core::RiskClassifier;
-using zelo::core::RiskLevel;
+using cleaner::core::ActionCategory;
+using cleaner::core::ProtectedPaths;
+using cleaner::core::RiskClassifier;
+using cleaner::core::RiskLevel;
 
 TEST_CASE("analise somente leitura e verde", "[risk_classifier]") {
     const RiskClassifier classifier{ProtectedPaths{{"C:\\Windows"}}};

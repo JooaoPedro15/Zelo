@@ -2,7 +2,7 @@
 
 #include <core/models/system_snapshot.hpp>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Le a situacao da memoria no momento da analise.
 ///

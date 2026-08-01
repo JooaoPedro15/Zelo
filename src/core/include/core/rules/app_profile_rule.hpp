@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Transforma o que os perfis encontraram em recomendacoes.
 ///

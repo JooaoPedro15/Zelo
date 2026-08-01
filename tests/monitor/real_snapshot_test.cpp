@@ -7,8 +7,8 @@
 
 #include <windows.h>
 
-using zelo::monitor::SnapshotOptions;
-using zelo::monitor::SnapshotTaker;
+using cleaner::monitor::SnapshotOptions;
+using cleaner::monitor::SnapshotTaker;
 
 namespace {
 

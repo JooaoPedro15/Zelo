@@ -3,7 +3,7 @@
 Etapa 9 do plano de monitoramento. O plano registrou que USN/ETW entrariam como
 **investigação com relatório antes de qualquer código**. Este é o relatório.
 
-A pergunta é uma só: **o Zelo pode dizer com segurança qual programa criou um
+A pergunta é uma só: **o Cleaner pode dizer com segurança qual programa criou um
 arquivo?** Hoje ele responde com rótulos de confiança (Confirmado / Altamente
 provável / Possivelmente relacionado / Origem desconhecida) apoiados em mapa
 estático de caminhos e lista de processos ativos. USN e ETW são os dois caminhos
@@ -16,7 +16,7 @@ que poderiam elevar isso a "Confirmado" de verdade.
 Tudo abaixo foi medido **neste computador**, em 01/08/2026, com sondas escritas
 para esta investigação (`usn_probe.cpp` e `usn_probe2.cpp`, descartadas depois —
 o que importa são os números). A sessão **não** tinha privilégio de
-administrador, que é exatamente a condição em que o Zelo roda no dia a dia.
+administrador, que é exatamente a condição em que o Cleaner roda no dia a dia.
 
 | Tentativa | Resultado |
 |---|---|
@@ -48,7 +48,7 @@ número na tela.
 Essa é a descoberta que muda o desenho. A distinção não é entre "o diário existe"
 e "o diário não existe" — é entre **saber que ele existe** e **poder lê-lo**.
 
-Consultar funciona sem privilégio: o Zelo pode dizer ao usuário que o diário
+Consultar funciona sem privilégio: o Cleaner pode dizer ao usuário que o diário
 está ligado, qual é a faixa e quanto ele guarda. Ler os registros não funciona:
 `FSCTL_READ_USN_JOURNAL` devolve acesso negado.
 
@@ -66,7 +66,7 @@ ferramentas de IA escrevendo o tempo todo, isso cobre horas — não dias.
 
 Consequência direta: **o USN não é um histórico**. Ele responde "o que mudou
 desde a última vez que olhei", desde que a última vez tenha sido recente. Se o
-Zelo ficar dois dias fechado, o começo da faixa já rolou para fora e a resposta
+Cleaner ficar dois dias fechado, o começo da faixa já rolou para fora e a resposta
 honesta passa a ser "não sei o que aconteceu nesse intervalo".
 
 Um monitor que promete explicar crescimento e depende só do USN teria buracos
@@ -89,7 +89,7 @@ o USN entrou no plano — ele resolve a metade errada do problema.
 O ETW com os provedores de arquivo e processo em modo núcleo é o único caminho
 que liga escrita a processo. Ele também **exige administrador**
 (`SeSystemProfilePrivilege` para a sessão do kernel logger), e a sessão precisa
-ficar de pé enquanto o Zelo estiver observando.
+ficar de pé enquanto o Cleaner estiver observando.
 
 Isso não foi medido aqui porque a medição exigiria elevar a sessão, o que
 mudaria a condição que a investigação queria testar. Fica como desconhecido
@@ -111,7 +111,7 @@ mais consome nele.
    mudança mais barato que um retrato — e o retrato já custa pouco o bastante
    para ser pedido pelo usuário.
 
-2. **Ambos exigem administrador.** O Zelo hoje faz seu trabalho sem elevação.
+2. **Ambos exigem administrador.** O Cleaner hoje faz seu trabalho sem elevação.
    Trocar isso por atribuição mais precisa é trocar uma garantia concreta por uma
    melhoria de rótulo. Exigir administrador para abrir o programa é a mudança de
    comportamento mais visível que este projeto poderia fazer, e ela não se paga.

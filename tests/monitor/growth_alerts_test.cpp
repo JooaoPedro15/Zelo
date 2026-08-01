@@ -3,13 +3,13 @@
 
 #include <algorithm>
 
-using zelo::monitor::Alert;
-using zelo::monitor::AlertKind;
-using zelo::monitor::AlertThresholds;
-using zelo::monitor::GrowthItem;
-using zelo::monitor::GrowthReport;
-using zelo::monitor::Snapshot;
-using zelo::monitor::evaluate_alerts;
+using cleaner::monitor::Alert;
+using cleaner::monitor::AlertKind;
+using cleaner::monitor::AlertThresholds;
+using cleaner::monitor::GrowthItem;
+using cleaner::monitor::GrowthReport;
+using cleaner::monitor::Snapshot;
+using cleaner::monitor::evaluate_alerts;
 
 namespace {
 

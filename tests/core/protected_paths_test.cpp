@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-using zelo::core::ProtectedPaths;
+using cleaner::core::ProtectedPaths;
 
 TEST_CASE("caminho identico a uma raiz protegida e protegido", "[protected_paths]") {
     const ProtectedPaths paths{{"C:\\Windows"}};

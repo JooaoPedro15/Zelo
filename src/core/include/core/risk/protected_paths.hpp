@@ -4,7 +4,7 @@
 #include <string_view>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Deny-list dos diretorios criticos do sistema. Fonte unica de verdade:
 /// qualquer caminho sob uma raiz protegida e sempre risco vermelho.

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Um desconto na pontuacao, sempre com a causa visivel. A pontuacao nunca
 /// perde pontos sem que o usuario possa ver de onde veio o desconto.

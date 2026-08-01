@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 /// O que aconteceria — ou o que aconteceu — ao liberar espaco local de uma pasta
 /// sincronizada.
@@ -47,7 +47,7 @@ struct CloudReleaseOutcome {
 ///
 /// O espaco nao aparece livre no mesmo instante: quem esvazia e o servico, no
 /// ritmo dele. Prometer o numero imediato seria prometer o que nao depende do
-/// Zelo.
+/// Cleaner.
 CloudReleaseOutcome release_cloud_space(const std::filesystem::path& root);
 
 }

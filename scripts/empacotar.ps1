@@ -18,7 +18,7 @@ if (-not $qt) {
 }
 
 $qt = $qt -replace "/", "\"
-$exe = Join-Path $raiz "build\release\zelo.exe"
+$exe = Join-Path $raiz "build\release\cleaner.exe"
 $dist = Join-Path $raiz "dist"
 
 # O windeployqt precisa das proprias DLLs do Qt no PATH. Sem isso ele encerra
@@ -56,7 +56,7 @@ $ErrorActionPreference = "Continue"
     --release `
     --no-translations `
     --no-opengl-sw `
-    (Join-Path $dist "zelo.exe")
+    (Join-Path $dist "cleaner.exe")
 
 $codigo = $LASTEXITCODE
 $ErrorActionPreference = $anterior

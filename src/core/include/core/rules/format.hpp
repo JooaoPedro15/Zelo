@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Formata bytes na unidade mais legivel (KB, MB, GB, TB). Texto voltado ao
 /// usuario final, entao usa virgula decimal como no portugues.

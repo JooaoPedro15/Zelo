@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace zelo::commands {
+namespace cleaner::commands {
 
 const std::vector<OfficialCommand>& command_catalog() {
     static const std::vector<OfficialCommand> catalog = {

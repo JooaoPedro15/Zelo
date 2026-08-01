@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 namespace {
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 /// O quanto se sabe sobre quem gerou os arquivos.
 ///

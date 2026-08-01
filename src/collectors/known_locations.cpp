@@ -12,7 +12,7 @@
 
 #include <windows.h>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 namespace {
 
@@ -74,7 +74,7 @@ const std::array<CatalogEntry, 27>& catalog() {
         {"windows.wer", "Relatorios de erro antigos",
          "%ProgramData%\\Microsoft\\Windows\\WER\\ReportArchive", "Windows",
          "Relatorios que o Windows guardou quando algum programa travou.",
-         "O historico de travamentos antigos. O Zelo usa o registro de eventos, nao estes "
+         "O historico de travamentos antigos. O Cleaner usa o registro de eventos, nao estes "
          "arquivos, entao a analise nao perde nada.",
          RegenerationCost::Permanent, RiskLevel::Green},
 

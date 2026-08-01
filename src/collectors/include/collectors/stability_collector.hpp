@@ -2,7 +2,7 @@
 
 #include <core/models/system_snapshot.hpp>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Le o registro de eventos do Windows procurando falhas de aplicativo e
 /// desligamentos inesperados.

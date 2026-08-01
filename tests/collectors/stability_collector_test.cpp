@@ -2,11 +2,11 @@
 #include <collectors/stability_collector.hpp>
 #include <core/rules/recurring_app_failures_rule.hpp>
 
-using zelo::collectors::StabilityCollector;
-using zelo::core::AppFailureInfo;
-using zelo::core::RecurringAppFailuresRule;
-using zelo::core::RiskLevel;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::StabilityCollector;
+using cleaner::core::AppFailureInfo;
+using cleaner::core::RecurringAppFailuresRule;
+using cleaner::core::RiskLevel;
+using cleaner::core::SystemSnapshot;
 
 namespace {
 

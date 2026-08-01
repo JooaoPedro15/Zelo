@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 namespace {
 
@@ -34,12 +34,12 @@ std::string action_text(const ProfileItem& item) {
         return "Pode ser removido, mas revise antes. " + regeneration_text(item.regeneration);
 
     case RiskLevel::Red:
-        return "O Zelo nao oferece remover isto. E conteudo seu, nao sobra de funcionamento. Se "
+        return "O Cleaner nao oferece remover isto. E conteudo seu, nao sobra de funcionamento. Se "
                "precisar liberar este espaco, faca pelo proprio programa, que sabe o que pode "
                "descartar.";
 
     case RiskLevel::Unknown:
-        return "O Zelo nao oferece remover isto porque nao sabe o que ha aqui. Nao saber e motivo "
+        return "O Cleaner nao oferece remover isto porque nao sabe o que ha aqui. Nao saber e motivo "
                "para nao mexer, nao para arriscar.";
     }
     return {};

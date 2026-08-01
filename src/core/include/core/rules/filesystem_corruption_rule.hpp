@@ -4,7 +4,7 @@
 
 #include <cstddef>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta corrupcao na estrutura do sistema de arquivos, registrada pelo
 /// proprio NTFS.

@@ -1,4 +1,4 @@
-add_library(zelo_commands STATIC
+add_library(cleaner_commands STATIC
     commands.cpp
     command_catalog.cpp
     command_runner.cpp
@@ -7,12 +7,12 @@ add_library(zelo_commands STATIC
     include/commands/command_runner.hpp
 )
 
-target_include_directories(zelo_commands
+target_include_directories(cleaner_commands
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(zelo_commands
+target_link_libraries(cleaner_commands
     PRIVATE
-        zelo_warnings
+        cleaner_warnings
 )

@@ -4,7 +4,7 @@
 
 #include <cstddef>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta excesso de programas nao essenciais iniciando com o Windows, uma das
 /// causas mais comuns de inicializacao lenta.

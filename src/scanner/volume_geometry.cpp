@@ -2,7 +2,7 @@
 
 #include <windows.h>
 
-namespace zelo::scanner {
+namespace cleaner::scanner {
 
 namespace {
 

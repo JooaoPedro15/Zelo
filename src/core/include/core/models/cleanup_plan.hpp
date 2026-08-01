@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Um arquivo que a limpeza pretende remover.
 struct CleanupItem {

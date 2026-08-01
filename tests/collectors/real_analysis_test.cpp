@@ -4,11 +4,11 @@
 
 #include <string>
 
-using zelo::collectors::collect_snapshot;
-using zelo::core::HealthCategory;
-using zelo::core::QuickAnalysis;
-using zelo::core::RiskLevel;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::collect_snapshot;
+using cleaner::core::HealthCategory;
+using cleaner::core::QuickAnalysis;
+using cleaner::core::RiskLevel;
+using cleaner::core::SystemSnapshot;
 
 namespace {
 

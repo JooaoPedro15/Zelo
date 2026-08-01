@@ -4,7 +4,7 @@
 
 #include <stop_token>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Reune os coletores e monta o retrato da maquina que as regras vao ler.
 ///

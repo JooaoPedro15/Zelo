@@ -6,9 +6,9 @@
 #include <storage/storage.hpp>
 
 TEST_CASE("todos os modulos linkam e respondem", "[smoke]") {
-    CHECK(zelo::core::module_name() == "core");
-    CHECK(zelo::collectors::module_name() == "collectors");
-    CHECK(zelo::scanner::module_name() == "scanner");
-    CHECK(zelo::commands::module_name() == "commands");
-    CHECK(zelo::storage::module_name() == "storage");
+    CHECK(cleaner::core::module_name() == "core");
+    CHECK(cleaner::collectors::module_name() == "collectors");
+    CHECK(cleaner::scanner::module_name() == "scanner");
+    CHECK(cleaner::commands::module_name() == "commands");
+    CHECK(cleaner::storage::module_name() == "storage");
 }

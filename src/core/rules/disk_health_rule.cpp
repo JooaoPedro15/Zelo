@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string DiskHealthRule::id() const {
     return "disks.physical-warning";
@@ -81,7 +81,7 @@ std::vector<Recommendation> DiskHealthRule::evaluate(const SystemSnapshot& snaps
                            "o disco.",
         .limitations =
             "Os indicadores mostram que algo foi detectado, nao quanto tempo o disco ainda tem. "
-            "Um disco nesse estado pode durar meses ou falhar amanha. O Zelo nao consegue "
+            "Um disco nesse estado pode durar meses ou falhar amanha. O Cleaner nao consegue "
             "estimar isso, e nenhuma acao dele corrige um defeito fisico.",
     }};
 }

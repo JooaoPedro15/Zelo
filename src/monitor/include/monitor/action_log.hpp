@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
-/// O que o Zelo fez, e se aquilo pode ser revertido.
+/// O que o Cleaner fez, e se aquilo pode ser revertido.
 enum class ActionKind {
     /// Arquivos apagados de vez. Nao ha volta.
     Deleted,
@@ -19,7 +19,7 @@ enum class ActionKind {
     /// Itens devolvidos da quarentena ao lugar de origem.
     Restored,
 
-    /// Uma limpeza oficial do Windows acionada pelo Zelo. Quem removeu foi o
+    /// Uma limpeza oficial do Windows acionada pelo Cleaner. Quem removeu foi o
     /// proprio Windows; o registro guarda qual comando e o que ele respondeu.
     CommandRun,
 };

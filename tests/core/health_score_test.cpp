@@ -3,9 +3,9 @@
 
 #include <vector>
 
-using zelo::core::HealthCategory;
-using zelo::core::HealthDeduction;
-using zelo::core::HealthScore;
+using cleaner::core::HealthCategory;
+using cleaner::core::HealthDeduction;
+using cleaner::core::HealthScore;
 
 TEST_CASE("sem deducoes todas as categorias valem 100", "[health_score]") {
     const HealthScore score = HealthScore::from_deductions({});

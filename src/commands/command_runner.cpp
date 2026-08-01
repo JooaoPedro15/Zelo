@@ -5,7 +5,7 @@
 #include <array>
 #include <utility>
 
-namespace zelo::commands {
+namespace cleaner::commands {
 
 namespace {
 
@@ -162,7 +162,7 @@ CommandResult run_official_command(const CommandRequest& request) {
 
     if (command.requires_elevation && !running_elevated()) {
         result.outcome = CommandOutcome::NeedsElevation;
-        result.explanation = "Este comando so funciona com o Zelo aberto como administrador.";
+        result.explanation = "Este comando so funciona com o Cleaner aberto como administrador.";
         return result;
     }
 
@@ -270,7 +270,7 @@ CommandResult run_official_command(const CommandRequest& request) {
     if (timed_out) {
         // O processo continua rodando de proposito. Interromper uma limpeza
         // oficial no meio pode deixar o Windows em estado pior do que o de
-        // antes, e o Zelo nao troca uma espera longa por um risco desses.
+        // antes, e o Cleaner nao troca uma espera longa por um risco desses.
         result.outcome = CommandOutcome::TimedOut;
         result.explanation =
             "O comando passou do tempo previsto e continua rodando em segundo plano. "

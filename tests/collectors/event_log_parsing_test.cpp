@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-using zelo::collectors::ParsedFailureEvent;
-using zelo::collectors::group_failures;
-using zelo::collectors::parse_failure_event;
+using cleaner::collectors::ParsedFailureEvent;
+using cleaner::collectors::group_failures;
+using cleaner::collectors::parse_failure_event;
 
 namespace {
 

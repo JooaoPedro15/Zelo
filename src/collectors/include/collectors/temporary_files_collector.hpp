@@ -7,7 +7,7 @@
 #include <stop_token>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Mede quanto espaco os arquivos temporarios conhecidos estao ocupando.
 ///

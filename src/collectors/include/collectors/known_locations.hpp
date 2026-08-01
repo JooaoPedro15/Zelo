@@ -7,7 +7,7 @@
 #include <stop_token>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// O catalogo de locais conhecidos, com os caminhos ja resolvidos para esta
 /// maquina. Entradas cujo caminho nao existe aqui saem com `present = false`.

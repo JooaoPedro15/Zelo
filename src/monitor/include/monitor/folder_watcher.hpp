@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 /// Atividade observada numa pasta, ja agrupada.
 ///

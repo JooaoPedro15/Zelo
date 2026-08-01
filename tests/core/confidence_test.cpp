@@ -6,7 +6,7 @@
 #include <vector>
 
 using Catch::Approx;
-using zelo::core::Confidence;
+using cleaner::core::Confidence;
 
 TEST_CASE("confianca soma o peso dos sinais observados", "[confidence]") {
     const Confidence confidence = Confidence::from_signals({

@@ -1,6 +1,6 @@
 #include "core/rules/weak_protection_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string WeakProtectionRule::id() const {
     return "security.weak-protection";
@@ -16,7 +16,7 @@ std::vector<Recommendation> WeakProtectionRule::evaluate(const SystemSnapshot& s
         return {};
     }
 
-    // Antivirus de terceiros: ha protecao, apenas nao e a do Windows. O Zelo
+    // Antivirus de terceiros: ha protecao, apenas nao e a do Windows. O Cleaner
     // nao tem como avaliar a saude dele e nao vai fingir que tem.
     if (!security.provider.empty() && security.provider != "Seguranca do Windows") {
         return {};
@@ -76,7 +76,7 @@ std::vector<Recommendation> WeakProtectionRule::evaluate(const SystemSnapshot& s
         .tool = "Seguranca do Windows",
         .expected_result = "Protecao ativa e definicoes atualizadas.",
         .limitations =
-            "O Zelo apenas le o que a protecao informa sobre si mesma. Ele nao procura ameacas, "
+            "O Cleaner apenas le o que a protecao informa sobre si mesma. Ele nao procura ameacas, "
             "nao substitui um antivirus e nao consegue dizer se o computador ja foi infectado.",
     }};
 }

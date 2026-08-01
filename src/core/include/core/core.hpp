@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string_view module_name();
 

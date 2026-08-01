@@ -2,7 +2,7 @@
 
 #include <core/models/system_snapshot.hpp>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Le o que o Windows sabe sobre a saude fisica dos discos.
 ///

@@ -3,8 +3,8 @@
 
 #include <algorithm>
 
-using zelo::collectors::is_running;
-using zelo::collectors::running_apps;
+using cleaner::collectors::is_running;
+using cleaner::collectors::running_apps;
 
 TEST_CASE("os programas abertos sao listados", "[running_apps][integration]") {
     const auto apps = running_apps();
@@ -21,7 +21,7 @@ TEST_CASE("os programas abertos sao listados", "[running_apps][integration]") {
 // aviso de "programa aberto" nunca dispararia e o usuario estranharia o espaco
 // liberado a menos.
 TEST_CASE("o proprio processo aparece como em execucao", "[running_apps][integration]") {
-    CHECK(is_running("zelo_tests.exe"));
+    CHECK(is_running("cleaner_tests.exe"));
 }
 
 TEST_CASE("programa inexistente nao aparece", "[running_apps]") {
@@ -30,6 +30,6 @@ TEST_CASE("programa inexistente nao aparece", "[running_apps]") {
 
 // Comparar so o comeco do nome faria "code.exe" casar com "codehelper.exe".
 TEST_CASE("a comparacao exige o nome inteiro", "[running_apps]") {
-    CHECK_FALSE(is_running("zelo_tes"));
-    CHECK_FALSE(is_running("zelo_tests.exe.extra"));
+    CHECK_FALSE(is_running("cleaner_tes"));
+    CHECK_FALSE(is_running("cleaner_tests.exe.extra"));
 }

@@ -2,7 +2,7 @@
 
 #include <core/models/system_snapshot.hpp>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Verifica se o Windows esta esperando um reinicio para concluir algo.
 ///

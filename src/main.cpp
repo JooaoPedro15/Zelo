@@ -34,7 +34,7 @@ int simulate_cleanup() {
     // padrao nao chega de volta a quem chamou. Arquivo funciona igual seja
     // pelo terminal ou por um atalho, e ainda fica guardado para consulta.
     const auto report_path =
-        zelo::storage::default_data_directory() / "simulacao-limpeza.txt";
+        cleaner::storage::default_data_directory() / "simulacao-limpeza.txt";
 
     std::error_code error;
     std::filesystem::create_directories(report_path.parent_path(), error);
@@ -50,13 +50,13 @@ int simulate_cleanup() {
     QTextStream out(&report);
 
     const auto protected_paths =
-        zelo::collectors::build_protected_paths(zelo::collectors::collect_system_paths());
+        cleaner::collectors::build_protected_paths(cleaner::collectors::collect_system_paths());
 
-    const zelo::storage::QuarantineStore quarantine{
-        zelo::storage::default_data_directory() / "quarentena", protected_paths};
-    const zelo::storage::CleanupService cleanup{quarantine, protected_paths};
+    const cleaner::storage::QuarantineStore quarantine{
+        cleaner::storage::default_data_directory() / "quarentena", protected_paths};
+    const cleaner::storage::CleanupService cleanup{quarantine, protected_paths};
 
-    const zelo::collectors::ReclaimableCollector reclaimable{protected_paths};
+    const cleaner::collectors::ReclaimableCollector reclaimable{protected_paths};
 
     std::uint64_t grand_total = 0;
     std::size_t grand_count = 0;
@@ -70,12 +70,12 @@ int simulate_cleanup() {
 
         // Local que a analise mediu mas o plano nao alcancou precisa aparecer
         // com o motivo. Pular em silencio esconderia justamente o caso em que o
-        // Zelo promete espaco que nao consegue liberar.
+        // Cleaner promete espaco que nao consegue liberar.
         if (plan.empty()) {
             out << "\n" << QString::fromStdString(location.display_name) << "\n"
                 << "  " << QString::fromStdString(location.path) << "\n"
                 << "  a analise mediu "
-                << QString::fromStdString(zelo::core::format_bytes(location.size_bytes))
+                << QString::fromStdString(cleaner::core::format_bytes(location.size_bytes))
                 << ", mas nenhum arquivo entrou no plano\n";
 
             for (const auto& reason : plan.rejected) {
@@ -90,13 +90,13 @@ int simulate_cleanup() {
         out << "\n" << QString::fromStdString(location.display_name) << "\n"
             << "  " << QString::fromStdString(location.path) << "\n"
             << "  " << plan.items.size() << " arquivos, "
-            << QString::fromStdString(zelo::core::format_bytes(plan.total_bytes())) << "\n"
+            << QString::fromStdString(cleaner::core::format_bytes(plan.total_bytes())) << "\n"
             << "  o que voce perde: " << QString::fromStdString(location.what_you_lose) << "\n";
     }
 
     // Os temporarios vem de um coletor proprio, que ja sabe quais pastas o
     // sistema usa para isso.
-    const zelo::collectors::TemporaryFilesCollector temporary{protected_paths};
+    const cleaner::collectors::TemporaryFilesCollector temporary{protected_paths};
 
     std::vector<std::string> temporary_paths;
     for (const auto& file : temporary.list_files()) {
@@ -110,12 +110,12 @@ int simulate_cleanup() {
 
         out << "\nArquivos temporarios do sistema\n"
             << "  " << plan.items.size() << " arquivos, "
-            << QString::fromStdString(zelo::core::format_bytes(plan.total_bytes())) << "\n";
+            << QString::fromStdString(cleaner::core::format_bytes(plan.total_bytes())) << "\n";
     }
 
     out << "\n----------------------------------------\n"
         << "Total: " << grand_count << " arquivos, "
-        << QString::fromStdString(zelo::core::format_bytes(grand_total)) << "\n"
+        << QString::fromStdString(cleaner::core::format_bytes(grand_total)) << "\n"
         << "\nNenhum arquivo foi removido: isto e apenas uma simulacao.\n";
     out.flush();
     report.close();
@@ -130,13 +130,13 @@ int simulate_cleanup() {
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
-    QApplication::setApplicationName(QStringLiteral("Zelo"));
+    QApplication::setApplicationName(QStringLiteral("Cleaner"));
     QApplication::setApplicationVersion(QStringLiteral("0.2.0"));
-    QApplication::setOrganizationName(QStringLiteral("Zelo"));
+    QApplication::setOrganizationName(QStringLiteral("Cleaner"));
 
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        QStringLiteral("Zelo — analisa e explica a saude do seu Windows. Alteracoes so acontecem "
+        QStringLiteral("Cleaner — analisa e explica a saude do seu Windows. Alteracoes so acontecem "
                        "com autorizacao explicita, e o que sai vai para a quarentena."));
     parser.addHelpOption();
     parser.addVersionOption();
@@ -152,22 +152,31 @@ int main(int argc, char* argv[]) {
     parser.addOption(simulate);
     parser.process(app);
 
-    const auto logs = zelo::storage::default_data_directory() / "logs";
-    zelo::storage::initialize_logging(logs);
-    zelo::storage::apply_log_retention(logs, 30);
-    spdlog::info("Zelo {} iniciado", QApplication::applicationVersion().toStdString());
+    // Antes de qualquer coisa tocar a pasta de dados: o programa ja se chamou
+    // Zelo, e o historico gravado com o nome antigo continua sendo do usuario.
+    const bool adotou = cleaner::storage::adopt_previous_data_directory("Zelo");
+
+    const auto logs = cleaner::storage::default_data_directory() / "logs";
+    cleaner::storage::initialize_logging(logs);
+    cleaner::storage::apply_log_retention(logs, 30);
+    spdlog::info("Cleaner {} iniciado", QApplication::applicationVersion().toStdString());
+
+    if (adotou) {
+        spdlog::info("dados do nome anterior adotados em {}",
+                     cleaner::storage::default_data_directory().string());
+    }
 
     if (parser.isSet(simulate)) {
         return simulate_cleanup();
     }
 
-    zelo::ui::MainWindow window;
+    cleaner::ui::MainWindow window;
     window.show();
 
     if (parser.isSet(analyze_on_start)) {
         // Depois da janela aparecer, para o usuario ver o progresso em vez de
         // encarar uma tela congelada durante a varredura.
-        QTimer::singleShot(0, &window, &zelo::ui::MainWindow::start_analysis);
+        QTimer::singleShot(0, &window, &cleaner::ui::MainWindow::start_analysis);
     }
 
     return QApplication::exec();

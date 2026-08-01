@@ -5,7 +5,7 @@
 
 #include <windows.h>
 
-namespace zelo::collectors::detail {
+namespace cleaner::collectors::detail {
 
 std::string to_utf8(std::wstring_view text) {
     if (text.empty()) {

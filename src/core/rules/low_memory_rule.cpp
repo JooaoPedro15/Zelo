@@ -2,7 +2,7 @@
 
 #include "core/rules/format.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string LowMemoryRule::id() const {
     return "performance.low-available-memory";
@@ -57,7 +57,7 @@ std::vector<Recommendation> LowMemoryRule::evaluate(const SystemSnapshot& snapsh
         .limitations =
             "Esta e uma unica medida, tirada no instante da analise. Um programa pesado aberto "
             "agora explica o numero sem que exista problema nenhum. So a repeticao em varias "
-            "analises indicaria falta real de memoria, e o Zelo ainda nao acompanha isso ao longo "
+            "analises indicaria falta real de memoria, e o Cleaner ainda nao acompanha isso ao longo "
             "do tempo.",
     }};
 }

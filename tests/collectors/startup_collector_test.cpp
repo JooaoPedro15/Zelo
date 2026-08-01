@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <collectors/startup_collector.hpp>
 
-using zelo::collectors::StartupCollector;
-using zelo::collectors::executable_from_command;
-using zelo::collectors::looks_essential;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::StartupCollector;
+using cleaner::collectors::executable_from_command;
+using cleaner::collectors::looks_essential;
+using cleaner::core::SystemSnapshot;
 
 // A heuristica erra de proposito para o lado de marcar demais: deixar de
 // sugerir algo e bem menos grave do que sugerir desativar um antivirus.

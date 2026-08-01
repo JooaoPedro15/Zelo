@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// O que os coletores conseguiram observar em uma analise. As regras leem
 /// daqui e nunca tocam no sistema — e por isso que elas rodam em teste sem
@@ -116,7 +116,7 @@ struct SecurityInfo {
     /// informa — em maquina recem-instalada, por exemplo.
     int last_quick_scan_age_days = -1;
 
-    /// Nome do antivirus em uso, quando nao for o do proprio Windows. O Zelo nao
+    /// Nome do antivirus em uso, quando nao for o do proprio Windows. O Cleaner nao
     /// substitui antivirus e nao opina sobre qual usar.
     std::string provider;
 };
@@ -162,7 +162,7 @@ struct DisksInfo {
 /// Sinais de que arquivos ou componentes do Windows podem estar danificados.
 ///
 /// A deteccao e por leitura de eventos: o MVP nao executa sfc nem DISM, que
-/// exigem administrador e demoram. O que o Zelo faz e reunir a evidencia de que
+/// exigem administrador e demoram. O que o Cleaner faz e reunir a evidencia de que
 /// vale a pena executa-los, e explicar o que cada um faz.
 struct IntegrityInfo {
     bool available = false;

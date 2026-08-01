@@ -2,7 +2,7 @@
 
 #include <core/rules/format.hpp>
 
-namespace zelo::ui {
+namespace cleaner::ui {
 
 QString risk_label(core::RiskLevel risk) {
     switch (risk) {

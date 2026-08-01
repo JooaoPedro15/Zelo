@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::collectors::detail {
+namespace cleaner::collectors::detail {
 
 /// Uma linha de resultado do WMI, com os campos ja convertidos para texto.
 class WmiRow {

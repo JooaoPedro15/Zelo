@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 /// Quanto uma pasta ocupa, contando tudo que esta dentro dela.
 ///

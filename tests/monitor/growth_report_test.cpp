@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <string>
 
-using zelo::monitor::FolderChange;
-using zelo::monitor::GrowthItem;
-using zelo::monitor::SnapshotDiff;
-using zelo::monitor::build_growth_report;
+using cleaner::monitor::FolderChange;
+using cleaner::monitor::GrowthItem;
+using cleaner::monitor::SnapshotDiff;
+using cleaner::monitor::build_growth_report;
 
 namespace {
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Uma regra de analise: le o que os coletores observaram e emite zero ou mais
 /// recomendacoes. Regras sao puras — nao tocam no disco, nao chamam o Windows

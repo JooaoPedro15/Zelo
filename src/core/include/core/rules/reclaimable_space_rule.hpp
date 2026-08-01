@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Mostra os locais conhecidos que estao ocupando espaco, um por recomendacao.
 ///

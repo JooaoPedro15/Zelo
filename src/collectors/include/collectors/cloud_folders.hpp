@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Uma pasta que um servico de nuvem mantem sincronizada.
 struct CloudFolder {

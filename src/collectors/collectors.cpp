@@ -1,6 +1,6 @@
 #include "collectors/collectors.hpp"
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 std::string_view module_name() {
     return "collectors";

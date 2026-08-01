@@ -4,7 +4,7 @@
 
 #include <cstddef>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta programas que falharam varias vezes no periodo observado.
 ///

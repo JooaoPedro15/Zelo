@@ -1,9 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <collectors/system_paths.hpp>
 
-using zelo::collectors::SystemPaths;
-using zelo::collectors::build_protected_paths;
-using zelo::collectors::collect_system_paths;
+using cleaner::collectors::SystemPaths;
+using cleaner::collectors::build_protected_paths;
+using cleaner::collectors::collect_system_paths;
 
 namespace {
 

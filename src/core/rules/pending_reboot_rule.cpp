@@ -1,6 +1,6 @@
 #include "core/rules/pending_reboot_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string PendingRebootRule::id() const {
     return "updates.pending-reboot";

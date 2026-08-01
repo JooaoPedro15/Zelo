@@ -1,6 +1,6 @@
 #include "core/rules/filesystem_corruption_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 namespace {
 
@@ -83,7 +83,7 @@ std::vector<Recommendation> FilesystemCorruptionRule::evaluate(const SystemSnaps
         .expected_result = "A verificacao dira se a estrutura do volume esta consistente e o que "
                            "encontrou de errado.",
         .limitations =
-            "Esta versao do Zelo nao executa a verificacao — ela reune a evidencia e explica a "
+            "Esta versao do Cleaner nao executa a verificacao — ela reune a evidencia e explica a "
             "ferramenta. O reparo, que e outro comando, altera o disco e pode exigir reiniciar. "
             "E importante saber: corrupcao repetida as vezes e sintoma de disco falhando "
             "fisicamente, e nesse caso reparar o sistema de arquivos nao resolve a causa. Se os "

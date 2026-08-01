@@ -4,12 +4,12 @@
 
 #include <cstddef>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta indicios de que arquivos ou componentes do Windows podem estar
 /// danificados, e explica as ferramentas oficiais que verificam isso.
 ///
-/// Esta versao do Zelo nao executa sfc nem DISM: eles exigem administrador,
+/// Esta versao do Cleaner nao executa sfc nem DISM: eles exigem administrador,
 /// demoram e um deles altera o sistema. O que a regra faz e o passo que o
 /// planejamento exige antes de qualquer reparo — reunir evidencia de que o
 /// reparo faz sentido, em vez de sugerir comando so porque ele existe.

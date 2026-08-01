@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// O que acontece depois de remover o conteudo de um local.
 enum class RegenerationCost {

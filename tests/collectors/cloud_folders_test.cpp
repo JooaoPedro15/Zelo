@@ -2,11 +2,11 @@
 #include <collectors/cloud_folders.hpp>
 #include <storage/cloud_release.hpp>
 
-using zelo::collectors::CloudFolder;
-using zelo::collectors::cloud_folders;
-using zelo::collectors::is_inside_cloud_folder;
-using zelo::collectors::measure_cloud_folder;
-using zelo::storage::plan_cloud_release;
+using cleaner::collectors::CloudFolder;
+using cleaner::collectors::cloud_folders;
+using cleaner::collectors::is_inside_cloud_folder;
+using cleaner::collectors::measure_cloud_folder;
+using cleaner::storage::plan_cloud_release;
 
 TEST_CASE("as pastas de nuvem saem do registro do servico", "[cloud]") {
     const auto folders = cloud_folders();

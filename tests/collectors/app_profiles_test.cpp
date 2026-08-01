@@ -5,13 +5,13 @@
 #include <algorithm>
 #include <string>
 
-using zelo::collectors::app_profiles_catalog;
-using zelo::core::AppProfile;
-using zelo::core::AppProfileRule;
-using zelo::core::ProfileFinding;
-using zelo::core::ProfileItem;
-using zelo::core::RiskLevel;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::app_profiles_catalog;
+using cleaner::core::AppProfile;
+using cleaner::core::AppProfileRule;
+using cleaner::core::ProfileFinding;
+using cleaner::core::ProfileItem;
+using cleaner::core::RiskLevel;
+using cleaner::core::SystemSnapshot;
 
 namespace {
 

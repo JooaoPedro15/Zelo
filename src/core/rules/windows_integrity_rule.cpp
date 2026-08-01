@@ -1,6 +1,6 @@
 #include "core/rules/windows_integrity_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string WindowsIntegrityRule::id() const {
     return "integrity.corruption-signs";
@@ -75,7 +75,7 @@ std::vector<Recommendation> WindowsIntegrityRule::evaluate(const SystemSnapshot&
             "A verificacao dira se ha de fato arquivos danificados, e o verificador repara os que "
             "conseguir a partir da copia local do Windows.",
         .limitations =
-            "Esta versao do Zelo nao executa essas ferramentas — ela reune a evidencia e explica o "
+            "Esta versao do Cleaner nao executa essas ferramentas — ela reune a evidencia e explica o "
             "que cada uma faz. Os eventos mostram que algo foi registrado no passado, nao que a "
             "instalacao esteja danificada agora. Verificar tambem nao conserta tudo: parte dos "
             "problemas so se resolve com reparo avancado ou reinstalacao do Windows.",

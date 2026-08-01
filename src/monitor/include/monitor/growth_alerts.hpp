@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 /// O que disparou o alerta.
 enum class AlertKind {

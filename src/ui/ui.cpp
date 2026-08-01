@@ -2,7 +2,7 @@
 
 #include <QString>
 
-namespace zelo::ui {
+namespace cleaner::ui {
 
 std::string module_name() {
     return QStringLiteral("ui").toStdString();

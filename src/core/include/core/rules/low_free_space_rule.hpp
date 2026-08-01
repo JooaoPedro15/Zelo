@@ -2,7 +2,7 @@
 
 #include "core/rules/analysis_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta volumes de sistema com pouco espaco livre. Pouco espaco no disco de
 /// sistema e uma das causas mais comuns de lentidao e de falha em atualizacao,

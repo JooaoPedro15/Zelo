@@ -7,12 +7,12 @@
 #include <fstream>
 #include <string>
 
-using zelo::core::CleanupItem;
-using zelo::core::CleanupPlan;
-using zelo::core::ProtectedPaths;
-using zelo::storage::CleanupService;
-using zelo::storage::QuarantineStore;
-using zelo::storage::RemovalMode;
+using cleaner::core::CleanupItem;
+using cleaner::core::CleanupPlan;
+using cleaner::core::ProtectedPaths;
+using cleaner::storage::CleanupService;
+using cleaner::storage::QuarantineStore;
+using cleaner::storage::RemovalMode;
 
 namespace {
 
@@ -49,7 +49,7 @@ public:
     }
 
     [[nodiscard]] ProtectedPaths paths() const {
-        zelo::core::ProtectedPathsSpec spec;
+        cleaner::core::ProtectedPathsSpec spec;
         spec.subtree_roots = {(root_ / "sistema").string()};
         return ProtectedPaths{spec};
     }
@@ -60,7 +60,7 @@ public:
 
 private:
     std::filesystem::path root_ =
-        std::filesystem::temp_directory_path() / ("zelo-limpeza-" + std::to_string(counter()));
+        std::filesystem::temp_directory_path() / ("cleaner-limpeza-" + std::to_string(counter()));
 
     static int counter() {
         static int value = 0;

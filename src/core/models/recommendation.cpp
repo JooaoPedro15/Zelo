@@ -1,6 +1,6 @@
 #include "core/models/recommendation.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::vector<std::string> validate(const Recommendation& recommendation) {
     std::vector<std::string> problems;

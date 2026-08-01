@@ -7,7 +7,7 @@
 #include <limits>
 #include <utility>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 CleanupService::CleanupService(QuarantineStore quarantine, core::ProtectedPaths protected_paths)
     : quarantine_(std::move(quarantine)), protected_paths_(std::move(protected_paths)) {}

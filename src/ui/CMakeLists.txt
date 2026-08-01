@@ -1,4 +1,4 @@
-qt_add_library(zelo_ui STATIC
+qt_add_library(cleaner_ui STATIC
     ui.cpp
     include/ui/ui.hpp
     presentation.cpp
@@ -7,22 +7,22 @@ qt_add_library(zelo_ui STATIC
     include/ui/main_window.hpp
 )
 
-target_include_directories(zelo_ui
+target_include_directories(cleaner_ui
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(zelo_ui
+target_link_libraries(cleaner_ui
     PUBLIC
         Qt6::Widgets
-        zelo_core
+        cleaner_core
         # O cabecalho da janela declara o observador de pastas, entao quem
         # inclui a janela precisa enxergar o modulo.
-        zelo_monitor
+        cleaner_monitor
     PRIVATE
-        zelo_collectors
-        zelo_commands
-        zelo_storage
+        cleaner_collectors
+        cleaner_commands
+        cleaner_storage
         spdlog::spdlog
-        zelo_warnings
+        cleaner_warnings
 )

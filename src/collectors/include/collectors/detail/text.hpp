@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 
-namespace zelo::collectors::detail {
+namespace cleaner::collectors::detail {
 
 /// As APIs do Windows falam UTF-16; o resto do projeto fala UTF-8. Toda
 /// travessia dessa fronteira passa por aqui.

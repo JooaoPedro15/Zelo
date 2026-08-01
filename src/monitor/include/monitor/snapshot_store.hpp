@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 /// Guarda os retratos do armazenamento e responde o que mudou entre eles.
 ///

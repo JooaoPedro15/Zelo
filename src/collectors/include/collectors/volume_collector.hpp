@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Le capacidade e espaco livre dos volumes fixos da maquina.
 ///

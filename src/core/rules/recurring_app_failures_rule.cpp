@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string RecurringAppFailuresRule::id() const {
     return "stability.recurring-app-failures";
@@ -83,7 +83,7 @@ std::vector<Recommendation> RecurringAppFailuresRule::evaluate(const SystemSnaps
         .expected_result = "Menos travamentos do programa afetado, quando a causa estiver nele.",
         .limitations =
             "O registro mostra que houve falha, nao por que ela aconteceu. A causa pode estar no "
-            "programa, em um driver, em uma atualizacao ou no hardware, e o Zelo nao consegue "
+            "programa, em um driver, em uma atualizacao ou no hardware, e o Cleaner nao consegue "
             "distinguir sozinho. Falhas que derrubam o computador inteiro podem nem aparecer aqui.",
     }};
 }

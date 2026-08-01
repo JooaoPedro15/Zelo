@@ -8,7 +8,7 @@
 
 #include <windows.h>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 namespace {
 
@@ -63,9 +63,35 @@ std::filesystem::path default_data_directory() {
     const DWORD written = ::GetEnvironmentVariableW(L"LOCALAPPDATA", buffer.data(),
                                                     static_cast<DWORD>(buffer.size()));
     if (written == 0 || written >= buffer.size()) {
-        return std::filesystem::temp_directory_path() / "Zelo";
+        return std::filesystem::temp_directory_path() / "Cleaner";
     }
-    return std::filesystem::path(std::wstring(buffer.data(), written)) / "Zelo";
+    return std::filesystem::path(std::wstring(buffer.data(), written)) / "Cleaner";
+}
+
+bool adopt_previous_data_directory(const std::string& previous_name) {
+    const auto atual = default_data_directory();
+    return adopt_previous_data_directory(atual.parent_path(), previous_name,
+                                         atual.filename().string());
+}
+
+bool adopt_previous_data_directory(const std::filesystem::path& base,
+                                   const std::string& previous_name,
+                                   const std::string& current_name) {
+    const auto atual = base / current_name;
+    const auto anterior = base / previous_name;
+
+    std::error_code error;
+
+    // Nada a fazer se a pasta antiga nao existe, ou se a nova ja esta em uso. No
+    // segundo caso mesclar as duas misturaria dois historicos e produziria um
+    // terceiro que nunca aconteceu.
+    if (!std::filesystem::is_directory(anterior, error) ||
+        std::filesystem::exists(atual, error)) {
+        return false;
+    }
+
+    std::filesystem::rename(anterior, atual, error);
+    return !error;
 }
 
 HistoryStore::HistoryStore(std::filesystem::path directory) : directory_(std::move(directory)) {

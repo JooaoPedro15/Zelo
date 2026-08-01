@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace zelo::ui {
+namespace cleaner::ui {
 
 std::string module_name();
 

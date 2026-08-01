@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Um sinal verificavel que sustenta uma conclusao. O texto e exibido ao
 /// usuario como motivo, entao descreve o que foi observado, nao o que se supoe.

@@ -5,7 +5,7 @@
 #include <QColor>
 #include <QString>
 
-namespace zelo::ui {
+namespace cleaner::ui {
 
 /// Traducoes e formatacoes para a tela. Ficam separadas dos widgets para poder
 /// ser testadas sem abrir janela.

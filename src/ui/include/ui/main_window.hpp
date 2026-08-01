@@ -14,7 +14,7 @@ class QProgressBar;
 class QPushButton;
 class QTextBrowser;
 
-namespace zelo::ui {
+namespace cleaner::ui {
 
 /// Painel principal. Apresenta o resultado da analise e conduz a limpeza.
 ///
@@ -27,7 +27,7 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
 
 public slots:
-    /// Dispara a analise. Publico para permitir `zelo --analisar`, util em
+    /// Dispara a analise. Publico para permitir `cleaner --analisar`, util em
     /// verificacao automatizada e para quem quer abrir ja com o resultado.
     void start_analysis();
 
@@ -69,7 +69,7 @@ private:
 
     QWidget* build_windows_tab();
 
-    /// Aciona a limpeza oficial escolhida. O Zelo nao apaga nada aqui: quem
+    /// Aciona a limpeza oficial escolhida. O Cleaner nao apaga nada aqui: quem
     /// remove e o proprio Windows, pelo caminho que a Microsoft mantem.
     void run_selected_windows_command();
 
@@ -77,7 +77,7 @@ private:
 
     QWidget* build_history_tab();
 
-    /// Lista o que o Zelo ja fez no computador, filtrado pela busca.
+    /// Lista o que o Cleaner ja fez no computador, filtrado pela busca.
     void show_history();
 
     /// Passa a observar as pastas que mais recebem escrita, enquanto a janela

@@ -5,14 +5,14 @@
 #include <algorithm>
 #include <set>
 
-using zelo::commands::CommandId;
-using zelo::commands::CommandOutcome;
-using zelo::commands::CommandRequest;
-using zelo::commands::command_by_id;
-using zelo::commands::command_catalog;
-using zelo::commands::resolve_system_executable;
-using zelo::commands::run_official_command;
-using zelo::commands::running_elevated;
+using cleaner::commands::CommandId;
+using cleaner::commands::CommandOutcome;
+using cleaner::commands::CommandRequest;
+using cleaner::commands::command_by_id;
+using cleaner::commands::command_catalog;
+using cleaner::commands::resolve_system_executable;
+using cleaner::commands::run_official_command;
+using cleaner::commands::running_elevated;
 
 TEST_CASE("todo comando do catalogo se descreve", "[commands]") {
     for (const auto& command : command_catalog()) {
@@ -50,7 +50,7 @@ TEST_CASE("os executaveis vem do diretorio do sistema", "[commands]") {
 }
 
 TEST_CASE("nome fora do sistema nao vira caminho", "[commands]") {
-    CHECK(resolve_system_executable("programa_que_nao_existe_zelo.exe").empty());
+    CHECK(resolve_system_executable("programa_que_nao_existe_cleaner.exe").empty());
 
     // Subir de diretorio precisa falhar mesmo se alguem passar isso adiante.
     CHECK(resolve_system_executable("..\\..\\Windows\\notepad.exe.nao").empty());
@@ -79,7 +79,7 @@ TEST_CASE("falta de privilegio e avisada antes de executar", "[commands]") {
 }
 
 // O `compact` responde 102 para "nao esta comprimido". E resposta, nao erro:
-// tratar como falha faria o Zelo inventar um problema que o Windows nao relatou.
+// tratar como falha faria o Cleaner inventar um problema que o Windows nao relatou.
 TEST_CASE("consulta sem privilegio executa de verdade", "[commands]") {
     const auto result = run_official_command(CommandRequest{.id = CommandId::QueryCompactOs});
 

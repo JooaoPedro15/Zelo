@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <string>
 
-namespace zelo::testing {
+namespace cleaner::testing {
 
 /// Cria uma arvore de arquivos descartavel sob o diretorio temporario do
 /// sistema e apaga tudo no destrutor. Os testes do scanner precisam de arquivos

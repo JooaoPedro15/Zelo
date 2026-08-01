@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Os campos que interessam de um evento de falha de aplicativo.
 struct ParsedFailureEvent {

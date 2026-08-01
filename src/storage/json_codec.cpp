@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 namespace {
 
@@ -251,7 +251,7 @@ nlohmann::json to_json(const StoredSession& session) {
 
 StoredSession session_from_json(const nlohmann::json& document) {
     if (!document.is_object() || !document.contains("schema")) {
-        throw std::runtime_error("documento nao parece uma sessao do Zelo");
+        throw std::runtime_error("documento nao parece uma sessao do Cleaner");
     }
     if (document.at("schema").get<int>() > kSchemaVersion) {
         throw std::runtime_error("sessao gravada por uma versao mais nova do aplicativo");

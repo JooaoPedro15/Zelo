@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 
-namespace zelo::scanner {
+namespace cleaner::scanner {
 
 /// O tamanho de cluster do volume, em bytes.
 ///

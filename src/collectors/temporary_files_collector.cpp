@@ -12,7 +12,7 @@
 
 #include <windows.h>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 namespace {
 

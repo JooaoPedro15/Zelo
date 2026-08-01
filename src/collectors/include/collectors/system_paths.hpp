@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Os caminhos que o Windows define para si mesmo. Ficam separados da montagem
 /// da deny-list de proposito: assim a parte critica para a seguranca e pura e

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Uma pasta ou arquivo dentro da area de um programa, ja classificado.
 ///

@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// O resultado de uma analise: o que foi achado, o quanto isso pesa na
 /// pontuacao e o que a analise nao conseguiu observar.

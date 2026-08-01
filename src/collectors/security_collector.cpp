@@ -2,7 +2,7 @@
 
 #include "collectors/detail/wmi.hpp"
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 core::SecurityInfo SecurityCollector::collect() const {
     core::SecurityInfo info;
@@ -42,7 +42,7 @@ core::SecurityInfo SecurityCollector::collect() const {
                           });
 
         // Antivirus de terceiros presente e um estado conhecido: ha protecao,
-        // apenas nao e a do Windows, e o Zelo nao tem como avaliar a dele.
+        // apenas nao e a do Windows, e o Cleaner nao tem como avaliar a dele.
         info.available = found_status;
         return info;
     }

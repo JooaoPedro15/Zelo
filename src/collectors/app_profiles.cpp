@@ -12,7 +12,7 @@
 
 #include <windows.h>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 namespace {
 
@@ -258,7 +258,7 @@ AppProfile chromium_profile(std::string id, std::string application, std::string
         // descartavel e dados que fazem um site funcionar sem internet.
         {"Service Worker", "Dados de sites que funcionam offline",
          "Aqui convivem cache descartavel e o conteudo que permite a um site abrir sem internet. "
-         "O Zelo nao separa os dois com seguranca.",
+         "O Cleaner nao separa os dois com seguranca.",
          "Possivelmente a capacidade de usar alguns sites offline.", RiskLevel::Unknown,
          RegenerationCost::NeedsDownload},
     };
@@ -366,7 +366,7 @@ std::vector<core::ProfileFinding> AppProfileCollector::collect(std::stop_token t
                 finding.item = core::ProfileItem{
                     .relative_path = name,
                     .display_name = name,
-                    .what_it_is = "O Zelo nao reconhece este item. Ele pode ter surgido numa versao "
+                    .what_it_is = "O Cleaner nao reconhece este item. Ele pode ter surgido numa versao "
                                   "nova do programa.",
                     .what_you_lose = "Desconhecido — e justamente por isso nao ha acao disponivel.",
                     .risk = RiskLevel::Unknown,

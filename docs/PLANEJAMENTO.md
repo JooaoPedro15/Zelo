@@ -1,4 +1,4 @@
-# Planejamento Técnico — Zelo (Windows Care Assistant)
+# Planejamento Técnico — Cleaner (Windows Care Assistant)
 
 > Documento de planejamento. Nenhum código de limpeza, reparo ou alteração do sistema é definido aqui para execução imediata. O MVP é somente leitura.
 
@@ -6,7 +6,7 @@
 
 ## 1. Visão do produto
 
-**Zelo** é um aplicativo desktop para Windows que analisa, explica e orienta a manutenção do computador: armazenamento, desempenho, estabilidade, discos, inicialização, atualizações e integridade do sistema.
+**Cleaner** é um aplicativo desktop para Windows que analisa, explica e orienta a manutenção do computador: armazenamento, desempenho, estabilidade, discos, inicialização, atualizações e integridade do sistema.
 
 Ele **não é um limpador de temporários**. É um assistente que:
 
@@ -23,13 +23,13 @@ Frases proibidas no produto (nunca usar na UI ou textos): "ficará igual a novo 
 
 | Nome | Justificativa |
 |---|---|
-| **Zelo** (recomendado) | Português, curto, único, significa "cuidado/diligência". Tagline: "Windows Care Assistant". Bom para portfólio BR e diferenciado internacionalmente. |
-| WinZelo | Variante com prefixo Windows; melhor para busca. |
+| **Cleaner** (recomendado) | Português, curto, único, significa "cuidado/diligência". Tagline: "Windows Care Assistant". Bom para portfólio BR e diferenciado internacionalmente. |
+| WinCleaner | Variante com prefixo Windows; melhor para busca. |
 | CareWin | Simples, autoexplicativo em inglês. |
 | Vitalis | Remete a "sinais vitais" do sistema. |
 | PC Health Assistant | Descritivo, genérico, fraco como marca. |
 
-Nome **confirmado: Zelo** (decisão de 2026-07-27).
+Nome **confirmado: Cleaner** (decisão de 2026-07-27).
 
 ---
 
@@ -169,7 +169,7 @@ Regras de análise: testáveis (puras, recebem dados coletados), explicáveis (t
 ## 8. Estrutura de projetos e pastas
 
 ```
-Cleaner/                          # repositório (nome do repo: zelo)
+Cleaner/                          # repositório (nome do repo: cleaner)
 ├── README.md                     # apresentação do projeto
 ├── CMakeLists.txt                # raiz: subdiretórios, warnings (-Wall -Wextra -Wpedantic -Werror)
 ├── CMakePresets.json             # presets MinGW + Ninja (debug/release), caminhos em D:/Qt
@@ -206,7 +206,7 @@ Cleaner/                          # repositório (nome do repo: zelo)
 │   ├── ui/                       # Qt Widgets: janelas, views, cartão de recomendação,
 │   │                             # selo de risco, barras de armazenamento
 │   └── main.cpp                  # composição: instancia coletores e injeta em core
-├── elevated/                     # (v0.2) zelo_elevated.exe — broker mínimo elevado,
+├── elevated/                     # (v0.2) cleaner_elevated.exe — broker mínimo elevado,
 │                                 # recebe CommandId + args via pipe; revalida allowlist
 ├── tests/
 │   ├── core/                     # regras, risco, confiança, score — unitários puros
@@ -278,7 +278,7 @@ Cleaner/                          # repositório (nome do repo: zelo)
 Princípio mantido: persistir **resultados e histórico**, nunca milhões de entradas de arquivos. O scanner agrega em memória e grava apenas rollup por diretório + top-N arquivos grandes + itens categorizados.
 
 ```
-%LocalAppData%\Zelo\
+%LocalAppData%\Cleaner\
 ├── settings.json                     # preferências do usuário
 ├── decisions.json                    # decisões persistentes: "eu uso", "importante",
 │                                     # "não recomendar", "revisar depois", ignorados
@@ -488,9 +488,9 @@ Critérios gerais para recomendar qualquer comando: evidência exigida presente;
 
 **O app principal NUNCA roda elevado.** Estratégia:
 
-1. `zelo.exe` roda como usuário comum; manifest `asInvoker`.
+1. `cleaner.exe` roda como usuário comum; manifest `asInvoker`.
 2. Tudo que dá para coletar sem admin, coleta sem admin. O que exigir, aparece como "requer elevação" com botão explícito.
-3. **v0.2 — broker elevado** (`zelo_elevated.exe`): processo mínimo, sem UI e sem Qt, iniciado sob demanda via `ShellExecuteW` + verbo `runas` (dispara UAC). Comunicação por named pipe com handshake. O broker: recebe **apenas** `CommandId` + argumentos variáveis já validados; **revalida** tudo contra sua própria cópia embutida da allowlist (defesa em profundidade — nunca confia no chamador); executa um comando por vez; devolve saída; encerra ao terminar. Nunca recebe linha de comando pronta.
+3. **v0.2 — broker elevado** (`cleaner_elevated.exe`): processo mínimo, sem UI e sem Qt, iniciado sob demanda via `ShellExecuteW` + verbo `runas` (dispara UAC). Comunicação por named pipe com handshake. O broker: recebe **apenas** `CommandId` + argumentos variáveis já validados; **revalida** tudo contra sua própria cópia embutida da allowlist (defesa em profundidade — nunca confia no chamador); executa um comando por vez; devolve saída; encerra ao terminar. Nunca recebe linha de comando pronta.
 4. UAC negado = ação cancelada, registrada como "elevação recusada", sem retry automático.
 
 ---
@@ -509,7 +509,7 @@ Critérios gerais para recomendar qualquer comando: evidência exigida presente;
 
 ## 23. Backup, quarentena e desfazer (design v0.2)
 
-- **Exclusões verdes**: Lixeira do Windows por padrão (recuperável nativamente) ou quarentena própria (`%ProgramData%\Zelo\Quarantine\<sessão>\`, com manifesto JSON de origem/hash/data) para itens fora do suporte da Lixeira. Expiração configurável (padrão 14 dias) com confirmação antes da purga.
+- **Exclusões verdes**: Lixeira do Windows por padrão (recuperável nativamente) ou quarentena própria (`%ProgramData%\Cleaner\Quarantine\<sessão>\`, com manifesto JSON de origem/hash/data) para itens fora do suporte da Lixeira. Expiração configurável (padrão 14 dias) com confirmação antes da purga.
 - **Movimentações**: original só apagado após cópia validada (tamanho + hash) e confirmação; manifesto permite desfazer (mover de volta).
 - **Ponto de restauração**: antes de reparos que alteram sistema (sfc/DISM RestoreHealth), *oferecer* criação via API oficial; nunca apresentar como backup de arquivos pessoais.
 - **Desfazer**: cada operação registra plano de reversão quando existir; operações sem reversão (ex.: RestoreHealth) exibem claramente "esta ação não pode ser desfeita" antes da confirmação.
@@ -518,7 +518,7 @@ Critérios gerais para recomendar qualquer comando: evidência exigida presente;
 
 ## 24. Logs e tratamento de erros
 
-- **spdlog** → arquivo local (`%LocalAppData%\Zelo\logs\`, rotativo diário, retenção 30 dias) + histórico estruturado em JSON (auditoria da seção 10). Nada sai da máquina.
+- **spdlog** → arquivo local (`%LocalAppData%\Cleaner\logs\`, rotativo diário, retenção 30 dias) + histórico estruturado em JSON (auditoria da seção 10). Nada sai da máquina.
 - Auditoria registra: análises, data/hora, versão do app e das regras, recomendações, evidências, comandos (linha completa, privilégio, saída, códigos), itens removidos/movidos, espaço recuperado, reinicializações solicitadas, ações ignoradas.
 - Erros de coleta **nunca derrubam a análise**: cada coletor devolve `CollectorResult { Data, Errors, Unavailable }`; UI mostra "não foi possível analisar X" com motivo.
 - Mensagens em duas camadas: linguagem simples primeiro, "detalhes técnicos" expansível (código, stack, saída bruta). Exemplo obrigatório de estilo: tradução de `0x800f081f` conforme especificação.
@@ -588,7 +588,7 @@ Linha do tempo de saúde e comparação antes/depois [futura]; alertas de espaç
 
 ## 30. Apresentação no portfólio (GitHub)
 
-- Repo público `zelo` (ou nome escolhido), licença MIT, idioma do README: PT-BR com seção "About" em inglês (ou bilíngue).
+- Repo público `cleaner` (ou nome escolhido), licença MIT, idioma do README: PT-BR com seção "About" em inglês (ou bilíngue).
 - **README sugerido**: banner/screenshot do dashboard; uma frase de valor ("analisa e explica a saúde do seu Windows — sem promessas falsas"); GIF do fluxo análise→recomendação→evidências; seção **Princípios de segurança** em destaque (é o diferencial de engenharia); arquitetura com diagrama das camadas; stack; como rodar; roadmap v0.1→v0.2; aviso honesto de limitações.
 - `docs/seguranca.md` e `docs/comandos.md` públicos — demonstram maturidade rara em projeto de portfólio.
 - CI badge, releases com tag semântica, Conventional Commits em PT, issues rotuladas por módulo — mostra processo, não só código.
@@ -597,7 +597,7 @@ Linha do tempo de saúde e comparação antes/depois [futura]; alertas de espaç
 
 ## 31. Perguntas e decisões pendentes
 
-1. ~~Nome final~~ — **decidido: Zelo** (2026-07-27).
+1. ~~Nome final~~ — **decidido: Cleaner** (2026-07-27).
 2. ~~Stack de linguagem~~ — **decidido: C++20** (2026-07-27; domínio do autor). ~~SQLite~~ — **decidido: JSON, sem banco** (2026-07-27).
 3. ~~UI~~ — **decidido: Qt 6 Widgets** (2026-07-27; instalado junto com o toolchain, visual superior para portfólio).
 4. ~~Qt via instalador × vcpkg~~ — **decidido: aqtinstall** (2026-07-27; binários oficiais, sem login, sem GUI, direto em `D:\Qt`). ~~Toolchain MSVC~~ — **decidido: MinGW 13.1 (GCC)** por restrição de espaço no C:; migração futura possível.

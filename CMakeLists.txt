@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(zelo
+project(cleaner
     VERSION 0.1.0
-    DESCRIPTION "Zelo - Windows Care Assistant"
+    DESCRIPTION "Cleaner - Windows Care Assistant"
     LANGUAGES CXX
 )
 
@@ -13,8 +13,8 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Sql)
 qt_standard_project_setup(REQUIRES 6.8)
 
 # Warnings rígidos só para os targets do projeto; dependências FetchContent ficam de fora.
-add_library(zelo_warnings INTERFACE)
-target_compile_options(zelo_warnings INTERFACE
+add_library(cleaner_warnings INTERFACE)
+target_compile_options(cleaner_warnings INTERFACE
     -Wall
     -Wextra
     -Wpedantic
@@ -27,9 +27,9 @@ target_compile_options(zelo_warnings INTERFACE
 
 # Runtime MinGW estático nos executáveis: a máquina tem um MinGW 6.3 antigo no PATH
 # cujas DLLs (libstdc++-6.dll) seriam resolvidas no lugar das do toolchain (0xc0000139).
-add_library(zelo_static_runtime INTERFACE)
+add_library(cleaner_static_runtime INTERFACE)
 if(MINGW)
-    target_link_options(zelo_static_runtime INTERFACE -static)
+    target_link_options(cleaner_static_runtime INTERFACE -static)
 endif()
 
 include(cmake/Dependencies.cmake)

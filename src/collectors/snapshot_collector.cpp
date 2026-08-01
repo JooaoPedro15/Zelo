@@ -13,7 +13,7 @@
 #include "collectors/temporary_files_collector.hpp"
 #include "collectors/volume_collector.hpp"
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 core::SystemSnapshot collect_snapshot(std::stop_token token) {
     core::SystemSnapshot snapshot;

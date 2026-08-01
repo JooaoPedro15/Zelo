@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-namespace zelo::commands {
+namespace cleaner::commands {
 
-/// As limpezas oficiais do Windows que o Zelo sabe acionar.
+/// As limpezas oficiais do Windows que o Cleaner sabe acionar.
 ///
 /// A lista e fechada em tempo de compilacao: nao existe caminho no programa
 /// para montar um comando novo enquanto ele roda. O que nao esta aqui nao
@@ -29,7 +29,7 @@ enum class CommandId {
 ///
 /// Programa do Windows nem sempre usa zero para "deu certo": o `compact`
 /// responde 102 para dizer que o sistema nao esta comprimido, o que e uma
-/// resposta, nao um erro. Sem essa tabela o Zelo mostraria falha onde houve
+/// resposta, nao um erro. Sem essa tabela o Cleaner mostraria falha onde houve
 /// resposta.
 struct ExitMeaning {
     int code = 0;
@@ -57,7 +57,7 @@ struct OfficialCommand {
     bool modifies_system = false;
 
     /// Verdadeiro quando o Windows exige privilegio de administrador. Sem ele o
-    /// comando falha com mensagem obscura, entao o Zelo avisa antes de tentar.
+    /// comando falha com mensagem obscura, entao o Cleaner avisa antes de tentar.
     bool requires_elevation = false;
 
     /// O que o usuario perde se deixar rodar. Vazio quando nao ha perda.

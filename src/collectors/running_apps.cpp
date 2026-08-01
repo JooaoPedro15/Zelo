@@ -9,7 +9,7 @@
 
 #include <tlhelp32.h>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 std::vector<RunningApp> running_apps() {
     const HANDLE snapshot = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);

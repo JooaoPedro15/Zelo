@@ -4,15 +4,15 @@
 #include <fstream>
 #include <string>
 
-using zelo::core::Confidence;
-using zelo::core::Evidence;
-using zelo::core::HealthCategory;
-using zelo::core::HealthDeduction;
-using zelo::core::HealthScore;
-using zelo::core::Recommendation;
-using zelo::core::RiskLevel;
-using zelo::storage::HistoryStore;
-using zelo::storage::StoredSession;
+using cleaner::core::Confidence;
+using cleaner::core::Evidence;
+using cleaner::core::HealthCategory;
+using cleaner::core::HealthDeduction;
+using cleaner::core::HealthScore;
+using cleaner::core::Recommendation;
+using cleaner::core::RiskLevel;
+using cleaner::storage::HistoryStore;
+using cleaner::storage::StoredSession;
 
 namespace {
 
@@ -22,7 +22,7 @@ public:
     TemporaryDirectory() {
         static int counter = 0;
         path_ = std::filesystem::temp_directory_path() /
-                ("zelo-history-" + std::to_string(counter++));
+                ("cleaner-history-" + std::to_string(counter++));
 
         std::error_code error;
         std::filesystem::remove_all(path_, error);
@@ -164,6 +164,38 @@ TEST_CASE("a gravacao nao deixa arquivo temporario para tras", "[history_store]"
     for (const auto& entry : std::filesystem::directory_iterator(directory.path())) {
         CHECK(entry.path().extension() != ".tmp");
     }
+}
+
+// O programa se chamou Zelo antes de se chamar Cleaner. Sem adotar a pasta
+// antiga, o historico do usuario continuaria no disco e sumiria da tela.
+TEST_CASE("a pasta de dados do nome anterior e adotada", "[history_store]") {
+    TemporaryDirectory base;
+
+    const auto antiga = base.path() / "Zelo";
+    std::filesystem::create_directories(antiga / "monitor");
+    std::ofstream{antiga / "monitor" / "retratos.sqlite"} << "dados";
+
+    CHECK(cleaner::storage::adopt_previous_data_directory(base.path(), "Zelo", "Cleaner"));
+
+    CHECK_FALSE(std::filesystem::exists(antiga));
+    CHECK(std::filesystem::exists(base.path() / "Cleaner" / "monitor" / "retratos.sqlite"));
+}
+
+// Mesclar dois historicos produziria um terceiro que nunca aconteceu.
+TEST_CASE("com a pasta nova ja em uso, a antiga fica onde esta", "[history_store]") {
+    TemporaryDirectory base;
+
+    std::filesystem::create_directories(base.path() / "Zelo");
+    std::filesystem::create_directories(base.path() / "Cleaner");
+
+    CHECK_FALSE(cleaner::storage::adopt_previous_data_directory(base.path(), "Zelo", "Cleaner"));
+    CHECK(std::filesystem::exists(base.path() / "Zelo"));
+}
+
+TEST_CASE("sem pasta antiga nao ha nada a adotar", "[history_store]") {
+    TemporaryDirectory base;
+
+    CHECK_FALSE(cleaner::storage::adopt_previous_data_directory(base.path(), "Zelo", "Cleaner"));
 }
 
 TEST_CASE("sessao inexistente devolve vazio em vez de lancar", "[history_store]") {

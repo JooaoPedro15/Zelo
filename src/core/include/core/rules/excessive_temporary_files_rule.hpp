@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta acumulo de arquivos temporarios conhecidos. Sao arquivos que o
 /// proprio sistema recria quando precisa, entao a limpeza e de risco verde —

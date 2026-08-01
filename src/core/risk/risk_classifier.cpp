@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 RiskClassifier::RiskClassifier(ProtectedPaths protected_paths)
     : protected_paths_(std::move(protected_paths)) {}

@@ -3,9 +3,9 @@
 
 #include <string>
 
-using zelo::monitor::ActionKind;
-using zelo::monitor::ActionLog;
-using zelo::monitor::ActionRecord;
+using cleaner::monitor::ActionKind;
+using cleaner::monitor::ActionLog;
+using cleaner::monitor::ActionRecord;
 
 namespace {
 
@@ -35,7 +35,7 @@ private:
     }
 
     std::filesystem::path path_ = std::filesystem::temp_directory_path() /
-                                  ("zelo-acoes-João-" + std::to_string(counter())) / "acoes.sqlite";
+                                  ("cleaner-acoes-João-" + std::to_string(counter())) / "acoes.sqlite";
 };
 
 }

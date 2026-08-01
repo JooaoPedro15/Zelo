@@ -1,4 +1,4 @@
-﻿add_library(zelo_storage STATIC
+add_library(cleaner_storage STATIC
     storage.cpp
     include/storage/storage.hpp
     json_codec.cpp
@@ -15,17 +15,17 @@
     include/storage/cleanup_service.hpp
 )
 
-target_include_directories(zelo_storage
+target_include_directories(cleaner_storage
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(zelo_storage
+target_link_libraries(cleaner_storage
     PUBLIC
-        zelo_core
+        cleaner_core
         nlohmann_json::nlohmann_json
     PRIVATE
-        zelo_scanner
+        cleaner_scanner
         spdlog::spdlog
-        zelo_warnings
+        cleaner_warnings
 )

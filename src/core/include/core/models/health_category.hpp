@@ -1,6 +1,6 @@
 #pragma once
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// As areas em que a saude do computador e medida.
 ///

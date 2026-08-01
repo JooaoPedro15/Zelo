@@ -6,8 +6,8 @@
 #include <string>
 #include <thread>
 
-using zelo::monitor::FolderActivity;
-using zelo::monitor::FolderWatcher;
+using cleaner::monitor::FolderActivity;
+using cleaner::monitor::FolderWatcher;
 
 namespace {
 
@@ -48,7 +48,7 @@ private:
     }
 
     std::filesystem::path root_ =
-        std::filesystem::temp_directory_path() / ("zelo-watch-" + std::to_string(counter()));
+        std::filesystem::temp_directory_path() / ("cleaner-watch-" + std::to_string(counter()));
 };
 
 /// Aviso do sistema de arquivos e assincrono: esperar um instante fixo daria um

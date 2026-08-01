@@ -4,7 +4,7 @@
 
 #include <deque>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 namespace {
 

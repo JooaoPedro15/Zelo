@@ -3,18 +3,18 @@
 #include <storage/json_codec.hpp>
 
 using Catch::Approx;
-using zelo::core::ActionCategory;
-using zelo::core::Confidence;
-using zelo::core::Evidence;
-using zelo::core::HealthCategory;
-using zelo::core::HealthDeduction;
-using zelo::core::HealthScore;
-using zelo::core::Recommendation;
-using zelo::core::RiskLevel;
-using zelo::core::Severity;
-using zelo::storage::StoredSession;
-using zelo::storage::session_from_json;
-using zelo::storage::to_json;
+using cleaner::core::ActionCategory;
+using cleaner::core::Confidence;
+using cleaner::core::Evidence;
+using cleaner::core::HealthCategory;
+using cleaner::core::HealthDeduction;
+using cleaner::core::HealthScore;
+using cleaner::core::Recommendation;
+using cleaner::core::RiskLevel;
+using cleaner::core::Severity;
+using cleaner::storage::StoredSession;
+using cleaner::storage::session_from_json;
+using cleaner::storage::to_json;
 
 namespace {
 

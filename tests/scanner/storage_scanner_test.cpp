@@ -6,9 +6,9 @@
 #include <stop_token>
 #include <string>
 
-using zelo::scanner::ScanResult;
-using zelo::scanner::StorageScanner;
-using zelo::testing::TemporaryTree;
+using cleaner::scanner::ScanResult;
+using cleaner::scanner::StorageScanner;
+using cleaner::testing::TemporaryTree;
 
 namespace {
 

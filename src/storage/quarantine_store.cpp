@@ -8,7 +8,7 @@
 #include <fstream>
 #include <utility>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 namespace {
 

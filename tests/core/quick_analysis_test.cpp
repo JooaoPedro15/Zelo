@@ -3,12 +3,12 @@
 
 #include <cstdint>
 
-using zelo::core::AnalysisResult;
-using zelo::core::HealthCategory;
-using zelo::core::QuickAnalysis;
-using zelo::core::StartupItemInfo;
-using zelo::core::SystemSnapshot;
-using zelo::core::VolumeInfo;
+using cleaner::core::AnalysisResult;
+using cleaner::core::HealthCategory;
+using cleaner::core::QuickAnalysis;
+using cleaner::core::StartupItemInfo;
+using cleaner::core::SystemSnapshot;
+using cleaner::core::VolumeInfo;
 
 namespace {
 

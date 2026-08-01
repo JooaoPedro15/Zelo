@@ -8,16 +8,16 @@
 
 #include <string>
 
-using zelo::core::ExcessiveTemporaryFilesRule;
-using zelo::core::LowFreeSpaceRule;
-using zelo::core::LowMemoryRule;
-using zelo::core::PendingRebootRule;
-using zelo::core::RecurringAppFailuresRule;
-using zelo::core::RiskLevel;
-using zelo::core::StartupItemInfo;
-using zelo::core::SystemSnapshot;
-using zelo::core::TooManyStartupItemsRule;
-using zelo::core::VolumeInfo;
+using cleaner::core::ExcessiveTemporaryFilesRule;
+using cleaner::core::LowFreeSpaceRule;
+using cleaner::core::LowMemoryRule;
+using cleaner::core::PendingRebootRule;
+using cleaner::core::RecurringAppFailuresRule;
+using cleaner::core::RiskLevel;
+using cleaner::core::StartupItemInfo;
+using cleaner::core::SystemSnapshot;
+using cleaner::core::TooManyStartupItemsRule;
+using cleaner::core::VolumeInfo;
 
 namespace {
 
@@ -59,11 +59,11 @@ TEST_CASE("a gravidade cresce conforme o disco enche", "[rules]") {
 
     const auto tight = rule.evaluate(snapshot_with_system_volume(500, 45));
     REQUIRE(tight.size() == 1);
-    CHECK(tight.front().severity == zelo::core::Severity::Attention);
+    CHECK(tight.front().severity == cleaner::core::Severity::Attention);
 
     const auto critical = rule.evaluate(snapshot_with_system_volume(500, 10));
     REQUIRE(critical.size() == 1);
-    CHECK(critical.front().severity == zelo::core::Severity::Serious);
+    CHECK(critical.front().severity == cleaner::core::Severity::Serious);
 }
 
 TEST_CASE("disco com espaco folgado nao gera recomendacao", "[rules]") {
@@ -215,18 +215,18 @@ TEST_CASE("a gravidade da inicializacao cresce com o excesso", "[rules]") {
 
     const auto some = rule.evaluate(snapshot_with_startup(7, 0));
     REQUIRE(some.size() == 1);
-    CHECK(some.front().severity == zelo::core::Severity::Attention);
+    CHECK(some.front().severity == cleaner::core::Severity::Attention);
 
     const auto many = rule.evaluate(snapshot_with_startup(30, 0));
     REQUIRE(many.size() == 1);
-    CHECK(many.front().severity == zelo::core::Severity::Serious);
+    CHECK(many.front().severity == cleaner::core::Severity::Serious);
 }
 
 // Cada regra declara em que area da saude o achado pesa. Antes isso era
 // deduzido do tipo da acao, e falhas de aplicativo — que sao leitura, como
 // quase tudo no MVP — acabavam descontando de Armazenamento.
 TEST_CASE("cada regra desconta da area certa da saude", "[rules]") {
-    using zelo::core::HealthCategory;
+    using cleaner::core::HealthCategory;
 
     SystemSnapshot snapshot;
     snapshot.volumes_available = true;
@@ -247,7 +247,7 @@ TEST_CASE("cada regra desconta da area certa da saude", "[rules]") {
                        .available_bytes = 1 * kGigabyte,
                        .load_percent = 94};
 
-    const auto check = [&snapshot](const zelo::core::AnalysisRule& rule, HealthCategory expected) {
+    const auto check = [&snapshot](const cleaner::core::AnalysisRule& rule, HealthCategory expected) {
         const auto found = rule.evaluate(snapshot);
         REQUIRE(found.size() == 1);
         CHECK(found.front().health_category == expected);

@@ -4,12 +4,12 @@
 #include <string>
 #include <vector>
 
-using zelo::core::ActionCategory;
-using zelo::core::Confidence;
-using zelo::core::Evidence;
-using zelo::core::Recommendation;
-using zelo::core::RiskLevel;
-using zelo::core::Severity;
+using cleaner::core::ActionCategory;
+using cleaner::core::Confidence;
+using cleaner::core::Evidence;
+using cleaner::core::Recommendation;
+using cleaner::core::RiskLevel;
+using cleaner::core::Severity;
 
 namespace {
 

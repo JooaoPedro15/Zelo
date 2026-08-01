@@ -1,6 +1,6 @@
 #include "core/rules/too_many_startup_items_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string TooManyStartupItemsRule::id() const {
     return "startup.too-many-items";

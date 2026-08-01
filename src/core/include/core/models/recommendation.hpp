@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Um sinal observado que sustenta a recomendacao. `source` diz de onde o dado
 /// veio, para que o usuario possa conferir por conta propria.

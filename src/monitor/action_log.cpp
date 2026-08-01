@@ -12,13 +12,13 @@
 #include <ctime>
 #include <utility>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 namespace {
 
 QString next_connection_name() {
     static int counter = 0;
-    return QStringLiteral("zelo_actions_%1").arg(counter++);
+    return QStringLiteral("cleaner_actions_%1").arg(counter++);
 }
 
 std::string now_iso8601() {

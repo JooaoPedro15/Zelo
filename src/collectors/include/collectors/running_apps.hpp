@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Um programa aberto agora.
 struct RunningApp {

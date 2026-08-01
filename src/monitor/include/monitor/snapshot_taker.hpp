@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 struct SnapshotOptions {
     /// Pastas ate esta profundidade entram sempre no retrato, mesmo pequenas.
@@ -25,7 +25,7 @@ struct SnapshotOptions {
     std::uint64_t tracked_file_threshold = 100ULL * 1024 * 1024;
 
     /// Caminhos que nao entram no retrato. O diretorio de dados do proprio
-    /// Zelo vai aqui: o banco de retratos crescendo apareceria como consumo
+    /// Cleaner vai aqui: o banco de retratos crescendo apareceria como consumo
     /// misterioso, e seria o monitor acusando a si mesmo.
     std::vector<std::string> excluded_paths;
 };

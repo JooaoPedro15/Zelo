@@ -2,7 +2,7 @@
 
 #include <windows.h>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 core::MemoryInfo MemoryCollector::collect() const {
     MEMORYSTATUSEX status{};

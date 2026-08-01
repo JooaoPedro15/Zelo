@@ -5,7 +5,7 @@
 #include <chrono>
 #include <string>
 
-namespace zelo::commands {
+namespace cleaner::commands {
 
 enum class CommandOutcome {
     /// Rodou e o Windows relatou sucesso.
@@ -14,11 +14,11 @@ enum class CommandOutcome {
     /// Rodou e falhou. O codigo e a saida ficam no resultado.
     Failed,
 
-    /// O Zelo se recusou a executar. Sempre por regra propria, nunca por erro
+    /// O Cleaner se recusou a executar. Sempre por regra propria, nunca por erro
     /// do Windows.
     Refused,
 
-    /// Precisa de administrador e o Zelo nao esta com esse privilegio.
+    /// Precisa de administrador e o Cleaner nao esta com esse privilegio.
     NeedsElevation,
 
     /// Passou do tempo. O processo continua rodando: ver `explanation`.

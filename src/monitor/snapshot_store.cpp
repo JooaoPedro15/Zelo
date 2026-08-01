@@ -12,7 +12,7 @@
 #include <map>
 #include <utility>
 
-namespace zelo::monitor {
+namespace cleaner::monitor {
 
 namespace {
 
@@ -28,7 +28,7 @@ std::string from_qt(const QVariant& value) {
 /// duas instancias com o mesmo nome brigariam pelo mesmo banco.
 QString next_connection_name() {
     static int counter = 0;
-    return QStringLiteral("zelo_monitor_%1").arg(counter++);
+    return QStringLiteral("cleaner_monitor_%1").arg(counter++);
 }
 
 }

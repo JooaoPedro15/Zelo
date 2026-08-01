@@ -8,11 +8,11 @@
 #include <algorithm>
 #include <string>
 
-using zelo::monitor::SnapshotOptions;
-using zelo::monitor::SnapshotStore;
-using zelo::monitor::SnapshotTaker;
-using zelo::monitor::build_growth_report;
-using zelo::testing::TemporaryTree;
+using cleaner::monitor::SnapshotOptions;
+using cleaner::monitor::SnapshotStore;
+using cleaner::monitor::SnapshotTaker;
+using cleaner::monitor::build_growth_report;
+using cleaner::testing::TemporaryTree;
 
 namespace {
 

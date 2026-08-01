@@ -7,7 +7,7 @@
 #include <array>
 #include <algorithm>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 namespace {
 

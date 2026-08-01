@@ -67,7 +67,7 @@ Cinco lacunas, em ordem de importância:
 | R5 | **Ações não são pesquisáveis.** Limpezas vão para o log de texto; não há página de histórico/restauração na UI. Quarentena não mostra o próprio tamanho nem prazo. | Média |
 | R6 | `.codex\.tmp` e similares foram classificados por inspeção pontual minha, não por confirmação do comportamento da ferramenta. A especificação exige rotular como Desconhecido o que não foi comprovado. | Média |
 | R7 | `last_access` existe no modelo com flag de confiabilidade, mas o coletor nunca o preenche. | Baixa |
-| R8 | O snapshot/histórico do próprio Zelo não está excluído da futura contagem de crescimento (hoje irrelevante; vira requisito com monitoramento). | Baixa |
+| R8 | O snapshot/histórico do próprio Cleaner não está excluído da futura contagem de crescimento (hoje irrelevante; vira requisito com monitoramento). | Baixa |
 
 ### O que NÃO muda
 
@@ -128,8 +128,8 @@ action_log(id, at, kind /*limpeza|quarentena|restauração|purga*/, path, bytes,
 
 Retenção embutida: guarda todos os snapshots de 24 h, um por dia por 30 dias, um por
 semana além disso; `VACUUM` na compactação; teto configurável (padrão 200 MB) — ao
-atingir, apaga os mais antigos e **avisa**. O diretório do Zelo (banco, quarentena,
-logs) é atribuído ao "Zelo" e nunca aparece como crescimento desconhecido (fecha R8).
+atingir, apaga os mais antigos e **avisa**. O diretório do Cleaner (banco, quarentena,
+logs) é atribuído ao "Cleaner" e nunca aparece como crescimento desconhecido (fecha R8).
 
 ### Estratégia de monitoramento — três camadas, da mais barata à mais cara
 
@@ -206,13 +206,13 @@ de comandos, porque Emergência depende de ações oficiais do Windows.
 | Etapa | Conteúdo | Critérios de conclusão |
 |---|---|---|
 | **E1. Verdade no disco** | Scanner mede tamanho alocado, detecta hard links (dedup por file ID quando nLinks > 1), reconhece placeholders de nuvem (conta como só-online, não zero), coleta last_access com flag de confiabilidade. Auditoria da classe de bug de acento: todo ponto que abre arquivo passa a usar `path` nativo; teste de matriz com diretório acentuado para cada módulo que grava. | Total do scanner ≤ 2% de divergência do Explorer numa árvore com compressão + hard links + OneDrive; testes de acento cobrindo storage, monitor e relatórios; 0 conversões estreitas de caminho restantes (grep auditável). |
-| **E2. Snapshot** | `monitor/` com SQLite; varredura completa do volume → rollup por pasta (profundidade 4 + pastas ≥ 50 MB + arquivos ≥ 100 MB); snapshot ao abrir e pós-limpeza; exclusão do próprio Zelo. | Snapshot do C: real conclui em tempo aceitável com prioridade baixa; reabrir o app mostra "último snapshot há X"; banco < 20 MB por snapshot típico. |
+| **E2. Snapshot** | `monitor/` com SQLite; varredura completa do volume → rollup por pasta (profundidade 4 + pastas ≥ 50 MB + arquivos ≥ 100 MB); snapshot ao abrir e pós-limpeza; exclusão do próprio Cleaner. | Snapshot do C: real conclui em tempo aceitável com prioridade baixa; reabrir o app mostra "último snapshot há X"; banco < 20 MB por snapshot típico. |
 | **E3. Diff — "o que cresceu"** | Motor de comparação A×B; tela nova "O que cresceu" com a frase-resumo ("o C: perdeu 7,2 GB desde ontem") e a lista por pasta com atribuição estática (Possivelmente relacionado); comparação agora×último, ×ontem, ×7d, ×30d, ×par manual. | Reproduzir o caso real: criar 500 MB num diretório entre dois snapshots e o diff aponta pasta, delta e período corretos; teste de pasta removida e de pasta nova. |
 | **E4. Risco de 4 níveis** | `Unknown` no enum; Atenção → quarentena obrigatória (R1); exclusão direta só para Seguro, registrada em `action_log`; página de histórico pesquisável + quarentena com tamanho próprio, prazo e restauração na UI (R5); quarentena preferindo outro disco (R2). | Teste: item amarelo executado termina na quarentena, nunca apagado; histórico lista e desfaz; quarentena em D: quando existir. |
 | **E5. Watchers** | `ReadDirectoryChangesW` nas raízes quentes com consolidação; `change_event` com hora; "quando cresceu" no diff ganha horário real enquanto o app esteve aberto. | Criar arquivos num diretório monitorado gera eventos consolidados com hora; CPU do monitor imperceptível (medida); eventos param de crescer quando o disco para. |
 | **E6. Perfis: VS Code + IA** | Perfis com subclassificação; detecção de versões duplicadas de extensão; conversas/sessões/credenciais Perigoso com testes explícitos ("nunca no modo seguro"); o não-comprovado nasce Desconhecido. | Testes-tabela por perfil: cada caminho protegido da especificação tem um teste que falha se ele aparecer como limpável. |
 | **E7. Perfis: navegadores + Adobe** | Idem para Chrome/Edge e Adobe; detecção de app aberto antes de limpar (processo), oferta de fechar com autorização. | Limpeza com Chrome aberto pula os bloqueados e explica; senha/histórico/cookie jamais aparecem como limpáveis (teste). |
-| **E8. Alertas** | Limiares configuráveis (GB/tempo, disco abaixo de X, pasta cresceu > Y); avaliados ao tirar snapshot e pelos watchers; painel mostra alerta com pastas, maiores arquivos novos e atribuição rotulada. | Simular crescimento dispara alerta com horário e pasta certos; sem falso alarme com o próprio banco do Zelo. |
+| **E8. Alertas** | Limiares configuráveis (GB/tempo, disco abaixo de X, pasta cresceu > Y); avaliados ao tirar snapshot e pelos watchers; painel mostra alerta com pastas, maiores arquivos novos e atribuição rotulada. | Simular crescimento dispara alerta com horário e pasta certos; sem falso alarme com o próprio banco do Cleaner. |
 | **E9. Windows oficial + USN (investigação)** | Motor de comandos com allowlist (já especificado no PLANEJAMENTO §19) para as limpezas oficiais; investigação de USN/ETW com medição de custo e privilégio — vira proposta separada antes de qualquer implementação. | Comandos oficiais executam com confirmação, saída interpretada e registro; relatório da investigação USN/ETW com recomendação. |
 | **E10. Nuvem + páginas restantes** | Estados OneDrive, "liberar espaço local", avisos de propagação; reorganização da UI nas páginas da especificação. | Arquivo só-online nunca é "excluído" para liberar espaço local; aviso de propagação testado; navegação por páginas. |
 

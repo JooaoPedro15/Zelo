@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 /// Um arquivo guardado na quarentena, com o que e preciso para devolve-lo.
 struct QuarantineEntry {

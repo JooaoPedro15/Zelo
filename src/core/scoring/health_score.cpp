@@ -5,7 +5,7 @@
 #include <cmath>
 #include <utility>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 HealthScore HealthScore::from_deductions(std::vector<HealthDeduction> deductions) {
     HealthScore score;

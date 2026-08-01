@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 /// Uma analise guardada em disco, com o que e preciso para reler o achado
 /// depois: quando rodou e com qual versao do aplicativo e das regras.

@@ -6,12 +6,12 @@
 #include <fstream>
 #include <string>
 
-using zelo::storage::apply_log_retention;
-using zelo::storage::current_log_file;
-using zelo::storage::initialize_logging;
+using cleaner::storage::apply_log_retention;
+using cleaner::storage::current_log_file;
+using cleaner::storage::initialize_logging;
 
 TEST_CASE("o log e criado no diretorio pedido", "[logging]") {
-    const auto directory = std::filesystem::temp_directory_path() / "zelo-log-test";
+    const auto directory = std::filesystem::temp_directory_path() / "cleaner-log-test";
 
     std::error_code error;
     std::filesystem::remove_all(directory, error);
@@ -29,20 +29,20 @@ TEST_CASE("o log e criado no diretorio pedido", "[logging]") {
 
     // Solta o arquivo antes de remover: enquanto o logger o mantem aberto, o
     // Windows recusa apagar e o teste deixaria lixo em TEMP.
-    zelo::storage::reset_logging_for_test();
+    cleaner::storage::reset_logging_for_test();
     std::filesystem::remove_all(directory, error);
 }
 
-// O perfil de quem usa o Zelo costuma ter acento — "C:\Users\João". O %TEMP%
+// O perfil de quem usa o Cleaner costuma ter acento — "C:\Users\João". O %TEMP%
 // desta maquina usa nome curto sem acento, entao um teste que so use TEMP
 // passaria sem nunca exercitar esse caminho.
 TEST_CASE("o log funciona em caminho com acento", "[logging]") {
-    const auto directory = std::filesystem::temp_directory_path() / "zelo-João-Programação";
+    const auto directory = std::filesystem::temp_directory_path() / "cleaner-João-Programação";
 
     std::error_code error;
     std::filesystem::remove_all(directory, error);
 
-    zelo::storage::reset_logging_for_test();
+    cleaner::storage::reset_logging_for_test();
     initialize_logging(directory);
 
     REQUIRE_FALSE(current_log_file().empty());
@@ -53,7 +53,7 @@ TEST_CASE("o log funciona em caminho com acento", "[logging]") {
     CHECK(std::filesystem::exists(current_log_file()));
     CHECK(std::filesystem::file_size(current_log_file(), error) > 0);
 
-    zelo::storage::reset_logging_for_test();
+    cleaner::storage::reset_logging_for_test();
     std::filesystem::remove_all(directory, error);
 }
 
@@ -65,14 +65,14 @@ TEST_CASE("diretorio invalido nao derruba a inicializacao", "[logging]") {
 }
 
 TEST_CASE("a retencao apaga apenas os logs antigos", "[logging]") {
-    const auto directory = std::filesystem::temp_directory_path() / "zelo-log-retention";
+    const auto directory = std::filesystem::temp_directory_path() / "cleaner-log-retention";
 
     std::error_code error;
     std::filesystem::remove_all(directory, error);
     std::filesystem::create_directories(directory, error);
 
-    const auto recent = directory / "zelo-recente.log";
-    const auto old = directory / "zelo-antigo.log";
+    const auto recent = directory / "cleaner-recente.log";
+    const auto old = directory / "cleaner-antigo.log";
     const auto other = directory / "nao-e-log.txt";
 
     for (const auto& file : {recent, old, other}) {

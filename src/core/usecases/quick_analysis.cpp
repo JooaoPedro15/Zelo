@@ -15,7 +15,7 @@
 
 #include <utility>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 namespace {
 

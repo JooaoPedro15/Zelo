@@ -3,7 +3,7 @@
 #include "core/rules/format.hpp"
 #include "core/rules/low_free_space_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 namespace {
 

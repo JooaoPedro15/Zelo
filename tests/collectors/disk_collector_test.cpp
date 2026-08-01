@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <collectors/disk_collector.hpp>
 
-using zelo::collectors::DiskCollector;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::DiskCollector;
+using cleaner::core::SystemSnapshot;
 
 TEST_CASE("os discos fisicos da maquina sao lidos", "[disk_collector][integration]") {
     const DiskCollector collector;

@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 namespace {
 

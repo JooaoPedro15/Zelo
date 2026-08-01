@@ -3,8 +3,8 @@
 
 #include <windows.h>
 
-using zelo::collectors::detail::WmiRow;
-using zelo::collectors::detail::query_wmi;
+using cleaner::collectors::detail::WmiRow;
+using cleaner::collectors::detail::query_wmi;
 
 namespace {
 

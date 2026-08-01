@@ -1,4 +1,4 @@
-﻿add_executable(zelo_tests
+add_executable(cleaner_tests
     qt_environment.cpp
     smoke/modules_smoke_test.cpp
     core/protected_paths_test.cpp
@@ -39,17 +39,17 @@
     ui/presentation_test.cpp
 )
 
-target_link_libraries(zelo_tests PRIVATE
-    zelo_core
-    zelo_collectors
-    zelo_scanner
-    zelo_commands
-    zelo_storage
-    zelo_ui
-    zelo_monitor
-    zelo_warnings
+target_link_libraries(cleaner_tests PRIVATE
+    cleaner_core
+    cleaner_collectors
+    cleaner_scanner
+    cleaner_commands
+    cleaner_storage
+    cleaner_ui
+    cleaner_monitor
+    cleaner_warnings
     spdlog::spdlog
-    zelo_static_runtime
+    cleaner_static_runtime
     # Sem WithMain: os testes tem entrada propria, que cria a instancia de
     # aplicativo Qt exigida para carregar o driver de banco.
     Catch2::Catch2
@@ -61,6 +61,6 @@ include(Catch)
 
 # Os testes de apresentaÃ§Ã£o usam QString e QColor, entÃ£o o binÃ¡rio carrega as
 # DLLs do Qt. DL_PATHS as coloca no PATH tanto na descoberta quanto na execuÃ§Ã£o.
-catch_discover_tests(zelo_tests
+catch_discover_tests(cleaner_tests
     DL_PATHS "$<TARGET_FILE_DIR:Qt6::Core>"
 )

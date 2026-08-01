@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::scanner {
+namespace cleaner::scanner {
 
 /// Estado de um arquivo gerenciado por servico de nuvem.
 enum class CloudState {

@@ -1,4 +1,4 @@
-add_library(zelo_scanner STATIC
+add_library(cleaner_scanner STATIC
     scanner.cpp
     include/scanner/scanner.hpp
     storage_scanner.cpp
@@ -7,12 +7,12 @@ add_library(zelo_scanner STATIC
     include/scanner/volume_geometry.hpp
 )
 
-target_include_directories(zelo_scanner
+target_include_directories(cleaner_scanner
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(zelo_scanner
+target_link_libraries(cleaner_scanner
     PRIVATE
-        zelo_warnings
+        cleaner_warnings
 )

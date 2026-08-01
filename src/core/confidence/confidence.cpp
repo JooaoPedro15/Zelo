@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 Confidence Confidence::from_signals(std::vector<ConfidenceSignal> signals) {
     Confidence confidence;

@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 /// Executa a limpeza em duas etapas separadas de proposito.
 ///

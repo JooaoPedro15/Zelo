@@ -10,7 +10,7 @@
 #include <oleauto.h>
 #include <wbemidl.h>
 
-namespace zelo::collectors::detail {
+namespace cleaner::collectors::detail {
 
 namespace {
 

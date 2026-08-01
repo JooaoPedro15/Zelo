@@ -2,7 +2,7 @@
 
 #include "core/rules/format.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 std::string LowFreeSpaceRule::id() const {
     return "storage.low-free-space";

@@ -3,9 +3,9 @@
 
 #include <string>
 
-using zelo::monitor::FolderSize;
-using zelo::monitor::Snapshot;
-using zelo::monitor::SnapshotStore;
+using cleaner::monitor::FolderSize;
+using cleaner::monitor::Snapshot;
+using cleaner::monitor::SnapshotStore;
 
 namespace {
 
@@ -35,10 +35,10 @@ private:
         return value++;
     }
 
-    // Com acento de proposito: o perfil de quem usa o Zelo costuma ter um, e
+    // Com acento de proposito: o perfil de quem usa o Cleaner costuma ter um, e
     // essa classe de defeito ja apareceu tres vezes no projeto.
     std::filesystem::path path_ = std::filesystem::temp_directory_path() /
-                                  ("zelo-monitor-João-" + std::to_string(counter())) /
+                                  ("cleaner-monitor-João-" + std::to_string(counter())) /
                                   "snapshots.sqlite";
 };
 

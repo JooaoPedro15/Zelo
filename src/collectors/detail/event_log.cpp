@@ -11,7 +11,7 @@
 
 #include <winevt.h>
 
-namespace zelo::collectors::detail {
+namespace cleaner::collectors::detail {
 
 namespace {
 

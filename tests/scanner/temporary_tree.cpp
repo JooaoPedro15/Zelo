@@ -8,7 +8,7 @@
 
 #include <windows.h>
 
-namespace zelo::testing {
+namespace cleaner::testing {
 
 namespace {
 
@@ -70,7 +70,7 @@ std::filesystem::path unique_root() {
     static std::atomic<int> counter{0};
 
     const auto id = std::to_string(counter.fetch_add(1));
-    return std::filesystem::temp_directory_path() / ("zelo-test-" + id);
+    return std::filesystem::temp_directory_path() / ("cleaner-test-" + id);
 }
 
 }

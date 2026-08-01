@@ -2,13 +2,13 @@
 
 #include "core/rules/analysis_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta indicios de problema fisico nos discos.
 ///
 /// Esta e a regra mais delicada do projeto. Disco com sinal de falha nao e caso
 /// de limpeza nem de comando de reparo: e caso de fazer backup antes que seja
-/// tarde. Nenhuma acao do Zelo conserta hardware, e a recomendacao diz isso.
+/// tarde. Nenhuma acao do Cleaner conserta hardware, e a recomendacao diz isso.
 ///
 /// Na direcao oposta, a regra tambem nao declara disco saudavel. Um unico
 /// indicador respondendo "Healthy" nao sustenta essa afirmacao — sustenta

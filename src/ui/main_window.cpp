@@ -41,7 +41,7 @@
 #include <QTextBrowser>
 #include <QVBoxLayout>
 
-namespace zelo::ui {
+namespace cleaner::ui {
 
 namespace {
 
@@ -56,7 +56,7 @@ QString section(const QString& title, const QString& body) {
     return QStringLiteral("<p><b>%1</b><br>%2</p>").arg(title, body);
 }
 
-/// Onde o monitor guarda os retratos. Fica junto dos demais dados do Zelo, e a
+/// Onde o monitor guarda os retratos. Fica junto dos demais dados do Cleaner, e a
 /// varredura exclui essa pasta de proposito.
 std::filesystem::path snapshot_database() {
     return storage::default_data_directory() / "monitor" / "retratos.sqlite";
@@ -138,7 +138,7 @@ QIcon risk_badge(const QColor& color) {
 }
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
-    setWindowTitle(QStringLiteral("Zelo"));
+    setWindowTitle(QStringLiteral("Cleaner"));
     resize(1040, 680);
 
     auto* central = new QWidget(this);
@@ -191,7 +191,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(findings_, &QListWidget::currentRowChanged, this, &MainWindow::update_action_button);
     findings_layout->addWidget(findings_);
 
-    // O botao de acao so aparece para achados que o Zelo sabe resolver com
+    // O botao de acao so aparece para achados que o Cleaner sabe resolver com
     // seguranca. Nos demais ele fica escondido, em vez de desabilitado: um
     // botao cinza sugere que existe uma acao, e para a maioria dos achados nao
     // existe nenhuma que o aplicativo deva tomar sozinho.
@@ -340,7 +340,7 @@ void MainWindow::show_cloud() {
     body += QStringLiteral(
         "<p>O que esta <b>so na nuvem</b> nao ocupa espaco aqui. Apagar esses arquivos nao "
         "libera nada e remove o arquivo da nuvem e dos seus outros dispositivos — por isso o "
-        "Zelo nunca apaga nada dentro desta pasta.</p>");
+        "Cleaner nunca apaga nada dentro desta pasta.</p>");
 
     if (!space.complete) {
         body += QStringLiteral(
@@ -450,7 +450,7 @@ QWidget* MainWindow::build_windows_tab() {
 
     auto* intro = new QLabel(
         QStringLiteral(
-            "<p>Estas sao as limpezas que a propria Microsoft mantem. O Zelo nao apaga nada "
+            "<p>Estas sao as limpezas que a propria Microsoft mantem. O Cleaner nao apaga nada "
             "aqui: ele chama o programa do Windows e mostra a resposta.</p>"),
         page);
     intro->setWordWrap(true);
@@ -506,7 +506,7 @@ void MainWindow::show_windows_command_details() {
 
     if (command->requires_elevation && !commands::running_elevated()) {
         body += QStringLiteral(
-            "<p style='color:#E68A00'>Este comando so funciona com o Zelo aberto como "
+            "<p style='color:#E68A00'>Este comando so funciona com o Cleaner aberto como "
             "administrador. Feche e abra de novo com o botao direito, em "
             "\"Executar como administrador\".</p>");
     }
@@ -517,7 +517,7 @@ void MainWindow::show_windows_command_details() {
     }
 
     // Mostrar a linha exata tira o misterio: da para conferir o comando fora do
-    // Zelo antes de deixar rodar.
+    // Cleaner antes de deixar rodar.
     QString line = QString::fromStdString(command->executable);
     for (const auto& argument : command->arguments) {
         line += QLatin1Char(' ') + QString::fromStdString(argument);
@@ -742,7 +742,7 @@ void MainWindow::update_action_button(int index) {
             ? &result_.recommendations.at(static_cast<std::size_t>(index))
             : nullptr;
 
-    // O botao aparece nos achados cuja acao o Zelo sabe executar com seguranca
+    // O botao aparece nos achados cuja acao o Cleaner sabe executar com seguranca
     // e desfazer. Nos demais fica escondido: botao cinza sugere que existe uma
     // acao quando, para a maioria dos achados, nao existe nenhuma que o
     // aplicativo deva tomar sozinho.
@@ -831,7 +831,7 @@ void MainWindow::clean_selected_finding() {
 
     // Avisa antes, e nomeando o programa. "Arquivos em uso nao serao removidos"
     // e vago; dizer que o Chrome esta aberto permite ao usuario decidir se
-    // fecha antes ou aceita liberar menos. O Zelo nunca encerra nada sozinho:
+    // fecha antes ou aceita liberar menos. O Cleaner nunca encerra nada sozinho:
     // isso custaria o trabalho nao salvo.
     if (const auto abertos = running_apps_holding(affected); !abertos.isEmpty()) {
         details += QStringLiteral(
@@ -980,7 +980,7 @@ QString MainWindow::describe_recent_activity() const {
               });
 
     QString body = QStringLiteral(
-        "<hr><p><b>Atividade desde que o Zelo foi aberto</b><br>"
+        "<hr><p><b>Atividade desde que o Cleaner foi aberto</b><br>"
         "<span style='color:gray'>Onde houve escrita e quando. O tamanho nao aparece aqui: o "
         "aviso do sistema informa qual arquivo mudou, nunca quanto ele ocupa — esse numero vem "
         "dos retratos, que medem de verdade.</span></p><ul>");
@@ -1143,7 +1143,7 @@ void MainWindow::show_result(const core::AnalysisResult& result) {
     } else {
         details_->setHtml(QStringLiteral(
             "<p>Nenhum ponto de atencao nas areas analisadas.</p>"
-            "<p>Isto nao significa que o computador esta perfeito: o Zelo ainda analisa apenas "
+            "<p>Isto nao significa que o computador esta perfeito: o Cleaner ainda analisa apenas "
             "espaco em disco, arquivos temporarios e programas de inicializacao.</p>"));
     }
 }
@@ -1210,7 +1210,7 @@ void MainWindow::show_details(int index) {
     }
 
     html += QStringLiteral(
-        "<p style='color:#777'><i>Esta versao do Zelo apenas analisa e explica. "
+        "<p style='color:#777'><i>Esta versao do Cleaner apenas analisa e explica. "
         "Nenhuma alteracao e feita no computador.</i></p>");
 
     details_->setHtml(html);

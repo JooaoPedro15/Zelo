@@ -2,7 +2,7 @@
 
 #include "core/rules/analysis_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Aponta falta de memoria disponivel no momento da analise.
 ///

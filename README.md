@@ -1,15 +1,15 @@
-# Zelo
+# Cleaner
 
 **Analisa e explica a saúde do seu Windows — sem promessas falsas.**
 
-Zelo olha o computador, mostra o que encontrou e explica cada achado: de onde veio a
+Cleaner olha o computador, mostra o que encontrou e explica cada achado: de onde veio a
 informação, o quanto ela sustenta a conclusão, qual o risco de agir e o que a
 recomendação **não** garante.
 
 Esta versão **não altera nada** no computador. Ela analisa, explica e para aí.
 
 <p align="center">
-  <img src="docs/imagens/painel.png" alt="Painel do Zelo mostrando a pontuação de saúde, as oito categorias e a lista de achados com o detalhe do achado selecionado" width="900">
+  <img src="docs/imagens/painel.png" alt="Painel do Cleaner mostrando a pontuação de saúde, as oito categorias e a lista de achados com o detalhe do achado selecionado" width="900">
 </p>
 
 > *Analyzes and explains Windows health in plain language, showing evidence, risk and
@@ -23,7 +23,7 @@ Quem sente o computador lento raramente sabe o que fazer. As ferramentas dispon�
 superficiais demais (limpadores que prometem milagre) ou técnicas demais (Visualizador de
 Eventos, DISM, chkdsk). No meio disso, formata-se o computador por falta de informação.
 
-O Zelo tenta ocupar esse meio: reunir o que o Windows já sabe sobre si mesmo e traduzir em
+O Cleaner tenta ocupar esse meio: reunir o que o Windows já sabe sobre si mesmo e traduzir em
 linguagem que dê para decidir.
 
 ## O que ele faz
@@ -52,7 +52,7 @@ E acompanha o disco ao longo do tempo:
 | Comparação entre retratos | o que cresceu entre dois momentos, sem contar a mesma pasta duas vezes |
 | Observação das pastas quentes | a que horas cada pasta recebeu escrita |
 | Alertas | disco sem folga, consumo rápido, pasta que deu um salto — sempre com o número junto |
-| Histórico pesquisável | o que o Zelo já fez, quando e por quê |
+| Histórico pesquisável | o que o Cleaner já fez, quando e por quê |
 | Limpezas do Windows | as que a Microsoft mantém, por lista fechada em tempo de compilação |
 | Nuvem | separa o que ocupa disco do que só existe na nuvem, e libera espaço sem apagar |
 
@@ -159,7 +159,7 @@ computador precisa ser claro sobre o que não sabe.
   avaliação técnica — não um comando.
 - A pontuação é orientação, não diagnóstico. Serve para dirigir atenção.
 - Alguns problemas só se resolvem com reinstalação de aplicativo, atualização de driver,
-  troca de peça, reparo avançado ou reinstalação do Windows. O Zelo diz isso quando é o caso.
+  troca de peça, reparo avançado ou reinstalação do Windows. O Cleaner diz isso quando é o caso.
 
 ## Licença
 

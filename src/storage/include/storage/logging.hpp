@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <string>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 /// Prepara o registro em arquivo. Tudo fica na maquina: nada e enviado para
 /// servidor nenhum, nem agora nem por engano depois.
@@ -15,7 +15,7 @@ void initialize_logging(const std::filesystem::path& directory);
 [[nodiscard]] std::filesystem::path current_log_file();
 
 /// Apaga registros antigos. Log de diagnostico e util por semanas, nao para
-/// sempre — e quem usa o Zelo costuma estar sem espaco.
+/// sempre — e quem usa o Cleaner costuma estar sem espaco.
 void apply_log_retention(const std::filesystem::path& directory, int keep_days);
 
 /// Solta o arquivo atual para que a proxima inicializacao valha. Existe apenas

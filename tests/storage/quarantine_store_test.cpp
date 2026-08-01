@@ -5,8 +5,8 @@
 #include <fstream>
 #include <string>
 
-using zelo::core::ProtectedPaths;
-using zelo::storage::QuarantineStore;
+using cleaner::core::ProtectedPaths;
+using cleaner::storage::QuarantineStore;
 
 namespace {
 
@@ -47,7 +47,7 @@ public:
 
 private:
     std::filesystem::path root_ =
-        std::filesystem::temp_directory_path() / ("zelo-quarentena-" + std::to_string(counter()));
+        std::filesystem::temp_directory_path() / ("cleaner-quarentena-" + std::to_string(counter()));
 
     static int counter() {
         static int value = 0;
@@ -56,7 +56,7 @@ private:
 };
 
 ProtectedPaths sandbox_paths(const Sandbox& sandbox) {
-    zelo::core::ProtectedPathsSpec spec;
+    cleaner::core::ProtectedPathsSpec spec;
     spec.subtree_roots = {(sandbox.root() / "sistema").string()};
     return ProtectedPaths{spec};
 }
@@ -150,11 +150,11 @@ TEST_CASE("o registro da quarentena sobrevive a reabertura", "[quarantine]") {
     CHECK(reaberto.restore(id));
 }
 
-// O perfil de quem usa o Zelo costuma ter acento. Se o registro nao puder ser
+// O perfil de quem usa o Cleaner costuma ter acento. Se o registro nao puder ser
 // gravado nesse caminho, os arquivos saem do lugar sem que nada saiba de onde
 // vieram — e o desfazer, que e a razao de a quarentena existir, se perde.
 TEST_CASE("quarentena funciona em caminho com acento", "[quarantine]") {
-    const auto root = std::filesystem::temp_directory_path() / "zelo-quarentena-João-ação";
+    const auto root = std::filesystem::temp_directory_path() / "cleaner-quarentena-João-ação";
 
     std::error_code error;
     std::filesystem::remove_all(root, error);
@@ -163,7 +163,7 @@ TEST_CASE("quarentena funciona em caminho com acento", "[quarantine]") {
     const auto file = root / "origem" / "cache.tmp";
     std::ofstream(file, std::ios::binary) << "conteudo";
 
-    zelo::core::ProtectedPathsSpec spec;
+    cleaner::core::ProtectedPathsSpec spec;
     spec.subtree_roots = {(root / "sistema").string()};
     const QuarantineStore store{root / "quarentena", ProtectedPaths{spec}};
 

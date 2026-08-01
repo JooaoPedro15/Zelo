@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Le os programas configurados para iniciar com o Windows, a partir das
 /// chaves Run e das pastas de inicializacao, do usuario e da maquina.

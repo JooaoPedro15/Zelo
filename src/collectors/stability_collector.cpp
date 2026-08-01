@@ -1,4 +1,4 @@
-﻿#include "collectors/stability_collector.hpp"
+#include "collectors/stability_collector.hpp"
 
 #include "collectors/detail/event_log.hpp"
 #include "collectors/detail/text.hpp"
@@ -14,7 +14,7 @@
 #include <windows.h>
 #include <winevt.h>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 StabilityCollector::StabilityCollector(int window_days) : window_days_(window_days) {}
 

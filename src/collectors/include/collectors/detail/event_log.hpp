@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace zelo::collectors::detail {
+namespace cleaner::collectors::detail {
 
 /// Percorre um canal de eventos do Windows com a consulta XPath dada e devolve
 /// o XML de cada evento.

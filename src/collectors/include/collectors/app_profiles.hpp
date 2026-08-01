@@ -7,7 +7,7 @@
 #include <stop_token>
 #include <vector>
 
-namespace zelo::collectors {
+namespace cleaner::collectors {
 
 /// Os perfis conhecidos, com os caminhos resolvidos para esta maquina.
 ///
@@ -20,7 +20,7 @@ namespace zelo::collectors {
 ///
 /// Enumera o que existe no disco e procura na tabela do perfil. O que nao
 /// estiver la sai como desconhecido, com o tamanho medido: o usuario ve que ha
-/// espaco ali e ve tambem que o Zelo nao sabe o que e.
+/// espaco ali e ve tambem que o Cleaner nao sabe o que e.
 class AppProfileCollector {
 public:
     explicit AppProfileCollector(core::ProtectedPaths protected_paths);

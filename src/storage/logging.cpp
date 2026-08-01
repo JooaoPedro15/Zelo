@@ -9,7 +9,7 @@
 #include <system_error>
 #include <vector>
 
-namespace zelo::storage {
+namespace cleaner::storage {
 
 namespace {
 
@@ -36,13 +36,13 @@ void initialize_logging(const std::filesystem::path& directory) {
     std::error_code error;
     std::filesystem::create_directories(directory, error);
 
-    g_log_file = directory / ("zelo-" + today_stamp() + ".log");
+    g_log_file = directory / ("cleaner-" + today_stamp() + ".log");
 
     try {
         // Caminho em wide: o perfil do usuario costuma ter acento, e passar o
         // caminho como string estreita faz o CRT ler os bytes UTF-8 como ANSI,
         // apontando para um diretorio que nao existe.
-        auto logger = spdlog::basic_logger_mt("zelo", g_log_file.wstring(), false);
+        auto logger = spdlog::basic_logger_mt("cleaner", g_log_file.wstring(), false);
         logger->set_pattern("%Y-%m-%d %H:%M:%S [%l] %v");
         logger->flush_on(spdlog::level::info);
         spdlog::set_default_logger(std::move(logger));

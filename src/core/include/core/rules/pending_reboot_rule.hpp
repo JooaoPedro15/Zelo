@@ -2,7 +2,7 @@
 
 #include "core/rules/analysis_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Avisa que o Windows esta esperando um reinicio para concluir algo.
 ///

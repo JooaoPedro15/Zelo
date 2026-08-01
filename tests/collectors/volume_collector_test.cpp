@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <collectors/volume_collector.hpp>
 
-using zelo::collectors::VolumeCollector;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::VolumeCollector;
+using cleaner::core::SystemSnapshot;
 
 TEST_CASE("os volumes fixos da maquina sao lidos", "[volume_collector][integration]") {
     const VolumeCollector collector;

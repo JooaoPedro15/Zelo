@@ -5,7 +5,7 @@
 
 #include <string_view>
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Categoria da acao recomendada. O risco vem de uma tabela estatica revisada,
 /// nunca de calculo em tempo de execucao.

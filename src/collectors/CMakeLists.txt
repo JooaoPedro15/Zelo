@@ -1,4 +1,4 @@
-﻿add_library(zelo_collectors STATIC
+add_library(cleaner_collectors STATIC
     collectors.cpp
     include/collectors/collectors.hpp
     system_paths.cpp
@@ -39,20 +39,20 @@
     include/collectors/detail/text.hpp
 )
 
-target_include_directories(zelo_collectors
+target_include_directories(cleaner_collectors
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(zelo_collectors
+target_link_libraries(cleaner_collectors
     PUBLIC
-        zelo_core
+        cleaner_core
     PRIVATE
-        zelo_scanner
+        cleaner_scanner
         wevtapi
         wbemuuid
         ole32
         oleaut32
         spdlog::spdlog
-        zelo_warnings
+        cleaner_warnings
 )

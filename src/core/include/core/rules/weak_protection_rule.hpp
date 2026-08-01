@@ -2,11 +2,11 @@
 
 #include "core/rules/analysis_rule.hpp"
 
-namespace zelo::core {
+namespace cleaner::core {
 
 /// Avisa quando a protecao do Windows esta desligada ou com definicoes velhas.
 ///
-/// O Zelo nao e antivirus e nao promete detectar ameaca nenhuma. Ele apenas
+/// O Cleaner nao e antivirus e nao promete detectar ameaca nenhuma. Ele apenas
 /// mostra o que a protecao ja instalada esta reportando sobre si mesma, e
 /// aponta para as ferramentas oficiais.
 class WeakProtectionRule final : public AnalysisRule {

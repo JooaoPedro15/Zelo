@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <collectors/security_collector.hpp>
 
-using zelo::collectors::SecurityCollector;
-using zelo::core::SystemSnapshot;
+using cleaner::collectors::SecurityCollector;
+using cleaner::core::SystemSnapshot;
 
 // O WMI e o ponto mais fragil da coleta: depende de servico rodando, namespace
 // presente e permissao. Este teste existe para provar que ele respondeu nesta

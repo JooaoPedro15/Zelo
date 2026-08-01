@@ -6,11 +6,11 @@
 #include <algorithm>
 #include <string>
 
-using zelo::monitor::FolderSize;
-using zelo::monitor::SnapshotOptions;
-using zelo::monitor::SnapshotTaker;
-using zelo::monitor::accumulate_subtrees;
-using zelo::testing::TemporaryTree;
+using cleaner::monitor::FolderSize;
+using cleaner::monitor::SnapshotOptions;
+using cleaner::monitor::SnapshotTaker;
+using cleaner::monitor::accumulate_subtrees;
+using cleaner::testing::TemporaryTree;
 
 namespace {
 
@@ -93,16 +93,16 @@ TEST_CASE("o retrato mede uma arvore de verdade", "[snapshot_taker]") {
 TEST_CASE("caminho excluido nao entra no retrato", "[snapshot_taker]") {
     TemporaryTree tree;
     tree.add_file("normal/a.bin", 1 * kMegabyte);
-    tree.add_file("zelo-dados/banco.sqlite", 4 * kMegabyte);
+    tree.add_file("cleaner-dados/banco.sqlite", 4 * kMegabyte);
 
     const SnapshotTaker taker{
         SnapshotOptions{.always_keep_depth = 10,
                         .deep_folder_threshold = 0,
-                        .excluded_paths = {(tree.root() / "zelo-dados").string()}}};
+                        .excluded_paths = {(tree.root() / "cleaner-dados").string()}}};
 
     const auto snapshot = taker.take(tree.root(), "C:");
 
-    CHECK(find(snapshot.folders, "zelo-dados") == nullptr);
+    CHECK(find(snapshot.folders, "cleaner-dados") == nullptr);
 
     const auto* raiz = find(snapshot.folders, tree.root().filename().string());
     REQUIRE(raiz != nullptr);
