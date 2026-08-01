@@ -17,6 +17,11 @@ struct SystemPaths {
     std::string program_data;
     std::string user_profile;
     std::vector<std::string> drive_roots;
+
+    /// Pastas sincronizadas com a nuvem. Dentro delas, apagar nao e uma
+    /// operacao local: a exclusao viaja para a nuvem e para os outros
+    /// dispositivos do usuario.
+    std::vector<std::string> cloud_roots;
 };
 
 /// Le os caminhos reais da maquina. Um caminho que o sistema nao informar volta
@@ -25,10 +30,10 @@ struct SystemPaths {
 
 /// Monta a deny-list do projeto a partir dos caminhos informados.
 ///
-/// Windows, Program Files e ProgramData protegem a subarvore inteira. A raiz de
-/// unidade e o perfil do usuario protegem apenas a propria pasta, senao nada
-/// dentro do disco poderia ser analisado. A pasta de temporarios do Windows e
-/// o unico carve-out aprovado ate agora.
+/// Windows, Program Files, ProgramData e as pastas de nuvem protegem a subarvore
+/// inteira. A raiz de unidade e o perfil do usuario protegem apenas a propria
+/// pasta, senao nada dentro do disco poderia ser analisado. A pasta de
+/// temporarios do Windows e o unico carve-out aprovado ate agora.
 [[nodiscard]] core::ProtectedPaths build_protected_paths(const SystemPaths& paths);
 
 }

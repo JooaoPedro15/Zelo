@@ -1,4 +1,4 @@
-add_library(zelo_storage STATIC
+﻿add_library(zelo_storage STATIC
     storage.cpp
     include/storage/storage.hpp
     json_codec.cpp
@@ -9,6 +9,8 @@ add_library(zelo_storage STATIC
     include/storage/logging.hpp
     quarantine_store.cpp
     include/storage/quarantine_store.hpp
+    cloud_release.cpp
+    include/storage/cloud_release.hpp
     cleanup_service.cpp
     include/storage/cleanup_service.hpp
 )

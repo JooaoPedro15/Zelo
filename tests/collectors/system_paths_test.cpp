@@ -15,6 +15,7 @@ SystemPaths windows_like_paths() {
         .program_data = "C:\\ProgramData",
         .user_profile = "C:\\Users\\Joao",
         .drive_roots = {"C:\\", "D:\\"},
+        .cloud_roots = {"C:\\Users\\Joao\\OneDrive"},
     };
 }
 
@@ -50,6 +51,19 @@ TEST_CASE("conteudo dentro do perfil do usuario continua analisavel", "[system_p
 
     CHECK_FALSE(protected_paths.is_protected("C:\\Users\\Joao\\Downloads\\instalador.exe"));
     CHECK_FALSE(protected_paths.is_protected("C:\\Users\\Joao\\Videos\\gravacao.mkv"));
+}
+
+// Dentro de pasta de nuvem, apagar nao e uma operacao local: a exclusao viaja
+// para a nuvem e para os outros dispositivos. O caminho para recuperar espaco
+// ali e "liberar espaco local", que esvazia o conteudo e mantem o arquivo.
+TEST_CASE("pasta de nuvem inteira fica protegida", "[system_paths]") {
+    const auto protected_paths = build_protected_paths(windows_like_paths());
+
+    CHECK(protected_paths.is_protected("C:\\Users\\Joao\\OneDrive"));
+    CHECK(protected_paths.is_protected("C:\\Users\\Joao\\OneDrive\\Documentos\\contrato.pdf"));
+
+    // Pasta de nome parecido, fora da sincronizacao, continua analisavel.
+    CHECK_FALSE(protected_paths.is_protected("C:\\Users\\Joao\\OneDriveAntigo\\copia.pdf"));
 }
 
 TEST_CASE("os caminhos do sistema sao lidos do Windows", "[system_paths][integration]") {

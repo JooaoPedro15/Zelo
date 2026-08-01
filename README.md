@@ -44,6 +44,18 @@ Analisa nove áreas e produz uma pontuação por categoria, sempre com a causa v
 Cada achado responde: o que foi encontrado, como foi identificado, no que a conclusão se
 apoia, o que fazer, qual a alternativa, o resultado esperado e **o que aquilo não garante**.
 
+E acompanha o disco ao longo do tempo:
+
+| Recurso | O que resolve |
+|---|---|
+| Retratos do disco | onde o espaço está, pasta por pasta, com total por subárvore |
+| Comparação entre retratos | o que cresceu entre dois momentos, sem contar a mesma pasta duas vezes |
+| Observação das pastas quentes | a que horas cada pasta recebeu escrita |
+| Alertas | disco sem folga, consumo rápido, pasta que deu um salto — sempre com o número junto |
+| Histórico pesquisável | o que o Zelo já fez, quando e por quê |
+| Limpezas do Windows | as que a Microsoft mantém, por lista fechada em tempo de compilação |
+| Nuvem | separa o que ocupa disco do que só existe na nuvem, e libera espaço sem apagar |
+
 ## Princípios de segurança
 
 Estes são invariantes do projeto, não boas intenções. Vários deles têm teste próprio.
@@ -118,19 +130,24 @@ cmake --preset debug && cmake --build --preset debug && ctest --preset debug
 Gerar uma pasta distribuível:
 
 ```bash
-cmake --build --preset release && cmake --install build/release --prefix dist
+cmake --build --preset release && powershell -File scripts/empacotar.ps1
 ```
 
-A pasta `dist` leva o Qt junto e roda em qualquer Windows, sem nada instalado.
+A pasta `dist` leva o Qt junto e roda em qualquer Windows, sem nada instalado. O script
+confere no final se o driver de SQLite foi junto: sem ele o programa abre normalmente e só
+falha ao tocar o histórico — o tipo de defeito que não aparece em teste.
 
 ## Estado
 
-**v0.1 — somente leitura.** Analisa, explica e simula. Nunca altera.
+**v0.3 — analisa, limpa e acompanha.**
 
-Planejado para depois: limpeza dos itens de risco verde com pré-visualização e quarentena,
-desativação reversível de itens de inicialização, movimentação segura de arquivos e execução
-autorizada de comandos oficiais do Windows — sempre com evidência antes, confirmação no meio
-e registro depois.
+Retratos do disco com comparação entre dois momentos, observação em tempo real das pastas
+que mais recebem escrita, alertas de crescimento com a evidência que os sustenta, limpeza
+definitiva com confirmação e registro, limpezas oficiais do Windows por lista fechada, e
+tratamento próprio para pastas de nuvem.
+
+Planejado para depois: desativação reversível de itens de inicialização e movimentação
+segura de arquivos grandes.
 
 ## Limitações
 

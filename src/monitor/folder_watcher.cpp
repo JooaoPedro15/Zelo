@@ -3,7 +3,9 @@
 #include <spdlog/spdlog.h>
 
 #include <array>
+#include <chrono>
 #include <ctime>
+#include <future>
 #include <map>
 #include <mutex>
 #include <set>
@@ -118,10 +120,35 @@ bool FolderWatcher::watch(const std::filesystem::path& folder) {
 
     impl_->directories.push_back(directory);
 
-    impl_->workers.emplace_back([this, folder, directory](const std::stop_token& token) {
+    // A observacao so esta valendo depois que o primeiro ReadDirectoryChangesW
+    // e aceito. Se `watch` voltasse antes disso, tudo que fosse escrito nesse
+    // intervalo passaria despercebido — e ninguem descobriria, porque nao ha
+    // aviso de aviso perdido. Em maquina ocupada a janela chega a durar.
+    auto armed = std::make_shared<std::promise<void>>();
+    auto ready = armed->get_future();
+
+    impl_->workers.emplace_back([this, folder, directory,
+                                 armed](const std::stop_token& token) {
         // Prioridade baixa: observar nao pode disputar recurso com o que o
         // usuario esta realmente fazendo.
         ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+
+        // Avisa quem chamou `watch`, aconteca o que acontecer daqui para a
+        // frente. Uma falha silenciosa aqui deixaria o chamador esperando para
+        // sempre por algo que nunca vai ser armado.
+        struct Announce {
+            std::shared_ptr<std::promise<void>> promise;
+            bool done = false;
+
+            void operator()() {
+                if (!done) {
+                    promise->set_value();
+                    done = true;
+                }
+            }
+
+            ~Announce() { operator()(); }
+        } announce{armed};
 
         const Handle signal(::CreateEventW(nullptr, TRUE, FALSE, nullptr));
         if (!signal.valid()) {
@@ -146,6 +173,9 @@ bool FolderWatcher::watch(const std::filesystem::path& folder) {
                                         nullptr, &overlapped, nullptr) == 0) {
                 return;
             }
+
+            // Armado de verdade: a partir daqui nenhuma escrita se perde.
+            announce();
 
             if (::WaitForSingleObject(signal.get(), INFINITE) != WAIT_OBJECT_0 ||
                 token.stop_requested()) {
@@ -176,6 +206,10 @@ bool FolderWatcher::watch(const std::filesystem::path& folder) {
             }
         }
     });
+
+    // Teto pequeno, so para nao prender a abertura do aplicativo se algo muito
+    // errado acontecer com a thread. O caminho normal libera em milissegundos.
+    ready.wait_for(std::chrono::seconds{5});
 
     return true;
 }

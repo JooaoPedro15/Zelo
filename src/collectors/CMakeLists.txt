@@ -1,4 +1,4 @@
-add_library(zelo_collectors STATIC
+﻿add_library(zelo_collectors STATIC
     collectors.cpp
     include/collectors/collectors.hpp
     system_paths.cpp
@@ -29,6 +29,8 @@ add_library(zelo_collectors STATIC
     include/collectors/known_locations.hpp
     app_profiles.cpp
     include/collectors/app_profiles.hpp
+    cloud_folders.cpp
+    include/collectors/cloud_folders.hpp
     running_apps.cpp
     include/collectors/running_apps.hpp
     event_log_parsing.cpp

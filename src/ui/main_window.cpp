@@ -4,6 +4,7 @@
 
 #include <collectors/running_apps.hpp>
 #include <collectors/snapshot_collector.hpp>
+#include <collectors/cloud_folders.hpp>
 #include <commands/command_catalog.hpp>
 #include <commands/command_runner.hpp>
 #include <monitor/action_log.hpp>
@@ -15,6 +16,7 @@
 #include <collectors/temporary_files_collector.hpp>
 #include <core/rules/format.hpp>
 #include <storage/cleanup_service.hpp>
+#include <storage/cloud_release.hpp>
 #include <storage/history_store.hpp>
 #include <storage/logging.hpp>
 #include <storage/quarantine_store.hpp>
@@ -210,11 +212,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     splitter->setStretchFactor(1, 3);
 
     auto* growth_page = build_growth_tab();
+    auto* cloud_page = build_cloud_tab();
     auto* history_page = build_history_tab();
 
     tabs_ = new QTabWidget(central);
     tabs_->addTab(splitter, QStringLiteral("Analise"));
     tabs_->addTab(growth_page, QStringLiteral("O que cresceu"));
+    tabs_->addTab(cloud_page, QStringLiteral("Nuvem"));
     tabs_->addTab(build_windows_tab(), QStringLiteral("Limpezas do Windows"));
     tabs_->addTab(history_page, QStringLiteral("Historico"));
 
@@ -225,10 +229,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     // A comparacao e pelo widget, nao pela posicao: inserir uma aba no meio nao
     // pode fazer a janela reconstruir a pagina errada.
     connect(tabs_, &QTabWidget::currentChanged, this,
-            [this, growth_page, history_page](int index) {
+            [this, growth_page, cloud_page, history_page](int index) {
                 const QWidget* page = tabs_->widget(index);
                 if (page == growth_page) {
                     show_growth();
+                } else if (page == cloud_page) {
+                    show_cloud();
                 } else if (page == history_page) {
                     show_history();
                 }
@@ -261,6 +267,181 @@ void MainWindow::start_watching() {
             spdlog::info("observando {}", folder.string());
         }
     }
+}
+
+QWidget* MainWindow::build_cloud_tab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    cloud_folders_ = new QListWidget(page);
+    cloud_folders_->setMaximumHeight(90);
+    connect(cloud_folders_, &QListWidget::currentRowChanged, this, &MainWindow::show_cloud);
+    layout->addWidget(cloud_folders_);
+
+    cloud_ = new QTextBrowser(page);
+    layout->addWidget(cloud_, 1);
+
+    cloud_release_button_ = new QPushButton(QStringLiteral("Liberar espaco local"), page);
+    cloud_release_button_->setEnabled(false);
+    connect(cloud_release_button_, &QPushButton::clicked, this, &MainWindow::release_cloud_space);
+    layout->addWidget(cloud_release_button_);
+
+    return page;
+}
+
+void MainWindow::show_cloud() {
+    if (cloud_folders_->count() == 0) {
+        for (const auto& folder : collectors::cloud_folders()) {
+            auto* item = new QListWidgetItem(
+                QStringLiteral("%1 (%2)").arg(QString::fromStdString(folder.path),
+                                              QString::fromStdString(folder.account)),
+                cloud_folders_);
+            item->setData(Qt::UserRole, QString::fromStdString(folder.path));
+        }
+
+        if (cloud_folders_->count() > 0) {
+            cloud_folders_->setCurrentRow(0);
+            return;
+        }
+    }
+
+    const auto* item = cloud_folders_->currentItem();
+    if (item == nullptr) {
+        cloud_->setHtml(QStringLiteral(
+            "<p>Nenhuma pasta sincronizada com nuvem foi encontrada neste usuario.</p>"));
+        cloud_release_button_->setEnabled(false);
+        return;
+    }
+
+    const auto path = item->data(Qt::UserRole).toString();
+
+    cloud_->setHtml(QStringLiteral("<p>Medindo %1...</p>").arg(path.toHtmlEscaped()));
+    cloud_release_button_->setEnabled(false);
+    QApplication::processEvents();
+
+    const auto space = collectors::measure_cloud_folder(path.toStdWString());
+    const auto plan = storage::plan_cloud_release(path.toStdWString());
+
+    QString body = QStringLiteral("<h3>%1</h3>").arg(path.toHtmlEscaped());
+
+    body += QStringLiteral(
+                "<table cellspacing='0' cellpadding='6'>"
+                "<tr><td><b>No disco</b></td><td>%1</td><td>%2 arquivos</td></tr>"
+                "<tr><td><b>So na nuvem</b></td><td>%3</td><td>%4 arquivos</td></tr>"
+                "</table>")
+                .arg(QString::fromStdString(core::format_bytes(space.local_bytes)))
+                .arg(space.local_files)
+                .arg(QString::fromStdString(core::format_bytes(space.online_only_bytes)))
+                .arg(space.online_only_files);
+
+    // A distincao mais importante da aba inteira. Sem ela, o usuario apagaria um
+    // arquivo achando que libera espaco e perderia o arquivo em todos os
+    // dispositivos, sem liberar nada.
+    body += QStringLiteral(
+        "<p>O que esta <b>so na nuvem</b> nao ocupa espaco aqui. Apagar esses arquivos nao "
+        "libera nada e remove o arquivo da nuvem e dos seus outros dispositivos — por isso o "
+        "Zelo nunca apaga nada dentro desta pasta.</p>");
+
+    if (!space.complete) {
+        body += QStringLiteral(
+            "<p style='color:#E68A00'>A leitura nao terminou por completo. Os numeros acima "
+            "sao um piso, nao o total.</p>");
+    }
+
+    if (plan.file_count > 0) {
+        body += QStringLiteral(
+                    "<p><b>Liberar espaco local</b> devolveria cerca de %1 (%2 arquivos). Os "
+                    "arquivos continuam na nuvem e voltam sozinhos quando voce abrir cada um.</p>")
+                    .arg(QString::fromStdString(core::format_bytes(plan.bytes)))
+                    .arg(plan.file_count);
+        cloud_release_button_->setEnabled(true);
+    } else {
+        body += QStringLiteral("<p>Nao ha nada baixado para liberar nesta pasta.</p>");
+    }
+
+    if (plan.pinned_kept > 0) {
+        body += QStringLiteral(
+                    "<p style='color:gray'>%1 arquivos estao marcados por voce como "
+                    "\"sempre manter neste dispositivo\" e ficam de fora.</p>")
+                    .arg(plan.pinned_kept);
+    }
+
+    cloud_->setHtml(body);
+}
+
+void MainWindow::release_cloud_space() {
+    const auto* item = cloud_folders_->currentItem();
+    if (item == nullptr) {
+        return;
+    }
+
+    const auto path = item->data(Qt::UserRole).toString();
+    const auto plan = storage::plan_cloud_release(path.toStdWString());
+
+    QMessageBox confirmation(this);
+    confirmation.setWindowTitle(QStringLiteral("Liberar espaco local"));
+    confirmation.setTextFormat(Qt::RichText);
+    confirmation.setText(
+        QStringLiteral(
+            "<p>Isto marca %1 arquivos (%2) para ficarem apenas na nuvem.</p>"
+            "<p><b>Nenhum arquivo e apagado.</b> Eles continuam na nuvem e nos seus outros "
+            "dispositivos, e voltam para o disco quando voce abrir cada um.</p>"
+            "<p>O espaco nao aparece livre na hora: quem esvazia os arquivos e o servico de "
+            "nuvem, no ritmo dele.</p>"
+            "<p>Continuar?</p>")
+            .arg(plan.file_count)
+            .arg(QString::fromStdString(core::format_bytes(plan.bytes))));
+    confirmation.addButton(QStringLiteral("Liberar espaco"), QMessageBox::AcceptRole);
+    confirmation.addButton(QStringLiteral("Cancelar"), QMessageBox::RejectRole);
+    confirmation.setDefaultButton(qobject_cast<QPushButton*>(confirmation.buttons().last()));
+    confirmation.exec();
+
+    if (confirmation.buttonRole(confirmation.clickedButton()) != QMessageBox::AcceptRole) {
+        return;
+    }
+
+    cloud_release_button_->setEnabled(false);
+    QApplication::processEvents();
+
+    const auto outcome = storage::release_cloud_space(path.toStdWString());
+
+    QString body = QStringLiteral(
+                       "<p>%1 arquivos marcados para ficar so na nuvem, somando %2.</p>"
+                       "<p>O espaco vai aparecer livre conforme o servico de nuvem esvazia cada "
+                       "arquivo. Isso leva alguns minutos.</p>")
+                       .arg(outcome.released)
+                       .arg(QString::fromStdString(core::format_bytes(outcome.bytes)));
+
+    if (outcome.failed > 0) {
+        body += QStringLiteral(
+                    "<p style='color:#E68A00'>%1 arquivos nao aceitaram a marca — normalmente "
+                    "porque estao abertos em algum programa.</p>")
+                    .arg(outcome.failed);
+    }
+
+    cloud_->setHtml(body);
+
+    // Voltar a habilitar so se ainda houver o que liberar. Deixar o botao morto
+    // apos um uso foi defeito relatado na limpeza, e a causa era exatamente
+    // esta: desabilitar antes da acao e nunca reavaliar depois.
+    cloud_release_button_->setEnabled(storage::plan_cloud_release(path.toStdWString()).file_count >
+                                      0);
+
+    monitor::ActionLog log{action_database()};
+    if (log.ok()) {
+        // Reversivel de verdade, e o unico caso ate agora: abrir o arquivo o traz
+        // de volta. O historico pode dizer isso sem prometer o impossivel.
+        log.record(monitor::ActionRecord{
+            .kind = monitor::ActionKind::CommandRun,
+            .reason = "Liberou espaco local na pasta de nuvem",
+            .target = path.toStdString(),
+            .item_count = outcome.released,
+            .bytes = outcome.bytes,
+            .reversible = true,
+        });
+    }
+
+    spdlog::info("liberou espaco local em {}: {} arquivos", path.toStdString(), outcome.released);
 }
 
 QWidget* MainWindow::build_windows_tab() {
@@ -851,7 +1032,9 @@ void MainWindow::show_growth() {
     const auto report = monitor::build_growth_report(*diff);
 
     QString warnings;
-    if (const auto atual = store.latest("C:"); atual.has_value()) {
+    // O volume vem do proprio retrato, nao fixo no codigo: assim continua certo
+    // no dia em que houver retrato de outro disco.
+    if (const auto atual = store.latest(snapshots.front().volume); atual.has_value()) {
         for (const auto& alert : monitor::evaluate_alerts(*atual, report)) {
             warnings += QStringLiteral(
                             "<p style='color:#E68A00'><b>%1</b><br>%2<br>"

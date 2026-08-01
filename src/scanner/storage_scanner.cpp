@@ -242,6 +242,7 @@ ScanResult StorageScanner::scan(const std::filesystem::path& root, std::stop_tok
                 // O conteudo esta na nuvem: nao ocupa espaco local, e apagar
                 // isto nao libera nada.
                 result.online_only_bytes += bytes;
+                ++result.online_only_file_count;
             } else {
                 allocated = allocated_size_of(child, entry, bytes, cluster_size);
 

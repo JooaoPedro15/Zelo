@@ -219,6 +219,20 @@ de comandos, porque Emergência depende de ações oficiais do Windows.
 Ordem pensada para valor imediato: **E1–E3 já respondem "onde foram os 7 GB"** — o
 resto refina segurança, atribuição e cobertura.
 
+### Situação
+
+**E1 a E10 concluídas.** Duas decisões mudaram durante a execução, ambas por pedido
+ou por medição:
+
+- **Quarentena saiu.** O usuário pediu que limpar limpasse de verdade. O que restou
+  no lugar dela é o registro obrigatório em `action_log`, que não desfaz nada mas
+  responde o que saiu, quando e por quê. O histórico diz isso com todas as letras:
+  arquivo apagado de vez não volta por ali.
+- **USN e ETW não entraram.** A medição está em
+  [INVESTIGACAO-USN-ETW.md](INVESTIGACAO-USN-ETW.md). Resumo: consultar o diário
+  funciona sem administrador, ler não, e o registro do USN não carrega o processo
+  que escreveu — ou seja, ele resolve a metade errada do problema de atribuição.
+
 ---
 
 ## 4. Decisões que ficam registradas para sua aprovação

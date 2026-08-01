@@ -57,6 +57,16 @@ private:
     /// Mostra o que mudou entre os dois retratos mais recentes.
     void show_growth();
 
+    QWidget* build_cloud_tab();
+
+    /// Mede as pastas sincronizadas, separando o que ocupa disco do que so
+    /// existe na nuvem.
+    void show_cloud();
+
+    /// Marca os arquivos baixados como "liberar espaco". Nao apaga nada: o
+    /// arquivo continua na nuvem e nos outros dispositivos.
+    void release_cloud_space();
+
     QWidget* build_windows_tab();
 
     /// Aciona a limpeza oficial escolhida. O Zelo nao apaga nada aqui: quem
@@ -91,6 +101,10 @@ private:
     QLabel* growth_summary_ = nullptr;
     QTextBrowser* growth_ = nullptr;
     QPushButton* snapshot_button_ = nullptr;
+    QListWidget* cloud_folders_ = nullptr;
+    QTextBrowser* cloud_ = nullptr;
+    QPushButton* cloud_release_button_ = nullptr;
+
     QListWidget* windows_commands_ = nullptr;
     QTextBrowser* windows_output_ = nullptr;
     QPushButton* windows_run_button_ = nullptr;

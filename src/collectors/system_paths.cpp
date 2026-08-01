@@ -1,5 +1,7 @@
 #include "collectors/system_paths.hpp"
 
+#include "collectors/cloud_folders.hpp"
+
 #include <array>
 
 #include <windows.h>
@@ -78,6 +80,10 @@ SystemPaths collect_system_paths() {
     paths.user_profile = environment_path(L"USERPROFILE");
     paths.drive_roots = collect_drive_roots();
 
+    for (const auto& folder : cloud_folders()) {
+        paths.cloud_roots.push_back(folder.path);
+    }
+
     return paths;
 }
 
@@ -88,6 +94,14 @@ core::ProtectedPaths build_protected_paths(const SystemPaths& paths) {
     append_if_present(spec.subtree_roots, paths.program_files);
     append_if_present(spec.subtree_roots, paths.program_files_x86);
     append_if_present(spec.subtree_roots, paths.program_data);
+
+    // Pasta de nuvem inteira, e nao so a raiz. Apagar um arquivo aqui nao libera
+    // espaco de forma local: a exclusao se propaga para a nuvem e para os outros
+    // dispositivos. Quem quiser espaco usa "liberar espaco local", que esvazia o
+    // conteudo daqui e mantem o arquivo la.
+    for (const auto& root : paths.cloud_roots) {
+        append_if_present(spec.subtree_roots, root);
+    }
 
     append_if_present(spec.exact_paths, paths.user_profile);
     for (const auto& root : paths.drive_roots) {

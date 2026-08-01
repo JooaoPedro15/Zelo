@@ -66,6 +66,10 @@ struct ScanResult {
     /// nao ser confundido com espaco recuperavel.
     std::uint64_t online_only_bytes = 0;
 
+    /// Quantos dos arquivos contados moram so na nuvem. Sem este numero, quem
+    /// consome nao consegue dizer quantos arquivos realmente ocupam disco.
+    std::size_t online_only_file_count = 0;
+
     std::size_t file_count = 0;
     std::size_t directory_count = 0;
 
