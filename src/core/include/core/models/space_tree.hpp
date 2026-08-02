@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/classify/content_class.hpp"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -31,9 +33,24 @@ struct SpaceNode {
     /// que zero, o tamanho e um piso, nao um total.
     std::size_t unreadable_count = 0;
 
+    /// O que ha ali, segundo as regras de identificacao. Sempre preenchido:
+    /// quando nenhuma regra reconhece, vem declarado como nao classificado.
+    Classification classification;
+
     std::vector<SpaceNode> children;
 
     [[nodiscard]] bool complete() const { return unreadable_count == 0; }
+};
+
+/// Quanto o volume tem de cada classe de conteudo.
+///
+/// Somado sobre as folhas da arvore, nao sobre os nos: contar pai e filho
+/// juntos dobraria os bytes.
+struct SpaceByClass {
+    std::uint64_t safe_bytes = 0;
+    std::uint64_t consequence_bytes = 0;
+    std::uint64_t review_bytes = 0;
+    std::uint64_t protected_bytes = 0;
 };
 
 /// O retrato de um volume: o que o Windows diz, o que a varredura viu, e a
@@ -56,6 +73,8 @@ struct SpaceSurvey {
     std::vector<std::string> unreadable_examples;
 
     SpaceNode root;
+
+    SpaceByClass by_class;
 
     /// Falso quando a varredura foi cancelada. O resultado continua utilizavel,
     /// mas parcial.

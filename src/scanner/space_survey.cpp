@@ -2,6 +2,8 @@
 
 #include "scanner/storage_scanner.hpp"
 
+#include <core/classify/classifier.hpp>
+
 #include <windows.h>
 
 #include <algorithm>
@@ -205,6 +207,43 @@ core::SpaceSurvey survey_space(const std::filesystem::path& root, const std::str
         }
     };
     sort_children(sort_children, survey.root);
+
+    // Quarta passada: o que ha em cada no.
+    //
+    // A soma por classe anda so pelas folhas. Contar pai e filho juntos dobraria
+    // os bytes, e a barra de "quanto da para limpar" mentiria para mais — que e
+    // o erro mais caro que um limpador pode cometer.
+    const core::ContentClassifier content;
+
+    const auto classify_tree = [&content](auto&& self, core::SpaceNode& node,
+                                          core::SpaceByClass& totals) -> void {
+        node.classification = content.classify(node.path);
+
+        for (auto& child : node.children) {
+            self(self, child, totals);
+        }
+
+        if (!node.children.empty()) {
+            return;
+        }
+
+        switch (node.classification.content_class) {
+        case core::ContentClass::SafeToClean:
+            totals.safe_bytes += node.allocated_bytes;
+            break;
+        case core::ContentClass::CleanWithConsequence:
+            totals.consequence_bytes += node.allocated_bytes;
+            break;
+        case core::ContentClass::NeedsReview:
+            totals.review_bytes += node.allocated_bytes;
+            break;
+        case core::ContentClass::Protected:
+            totals.protected_bytes += node.allocated_bytes;
+            break;
+        }
+    };
+
+    classify_tree(classify_tree, survey.root, survey.by_class);
 
     return survey;
 }

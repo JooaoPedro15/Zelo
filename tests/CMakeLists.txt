@@ -4,6 +4,7 @@
     core/protected_paths_test.cpp
     core/risk_classifier_test.cpp
     core/confidence_test.cpp
+    core/classifier_test.cpp
     core/health_score_test.cpp
     core/recommendation_test.cpp
     core/rules_test.cpp

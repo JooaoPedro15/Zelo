@@ -43,6 +43,12 @@ add_library(cleaner_core STATIC
     rules/reclaimable_space_rule.cpp
     include/core/rules/reclaimable_space_rule.hpp
     include/core/models/known_location.hpp
+    classify/content_class.cpp
+    include/core/classify/content_class.hpp
+    classify/classifier.cpp
+    classify/default_rules.cpp
+    include/core/classify/classifier.hpp
+    include/core/models/space_tree.hpp
     usecases/quick_analysis.cpp
     include/core/usecases/quick_analysis.hpp
 )

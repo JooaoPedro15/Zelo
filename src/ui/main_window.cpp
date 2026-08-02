@@ -461,10 +461,14 @@ QWidget* MainWindow::build_space_tab() {
     layout->addWidget(space_summary_);
 
     space_tree_ = new QTreeWidget(page);
-    space_tree_->setColumnCount(3);
-    space_tree_->setHeaderLabels(
-        {QStringLiteral("Pasta"), QStringLiteral("Ocupa"), QStringLiteral("Arquivos")});
-    space_tree_->setColumnWidth(0, 420);
+    space_tree_->setColumnCount(5);
+    space_tree_->setHeaderLabels({QStringLiteral("Pasta"), QStringLiteral("Ocupa"),
+                                  QStringLiteral("Arquivos"), QStringLiteral("O que e"),
+                                  QStringLiteral("Programa")});
+    space_tree_->setColumnWidth(0, 360);
+    space_tree_->setColumnWidth(1, 90);
+    space_tree_->setColumnWidth(2, 80);
+    space_tree_->setColumnWidth(3, 210);
     layout->addWidget(space_tree_, 1);
 
     return page;
@@ -479,13 +483,50 @@ void MainWindow::cancel_survey() {
 
 namespace {
 
+QColor class_color(core::ContentClass value) {
+    switch (value) {
+    case core::ContentClass::SafeToClean:
+        return QColor(0x2E, 0x7D, 0x32);
+    case core::ContentClass::CleanWithConsequence:
+        return QColor(0xE6, 0x8A, 0x00);
+    case core::ContentClass::Protected:
+        return QColor(0xC0, 0x39, 0x2B);
+    case core::ContentClass::NeedsReview:
+        break;
+    }
+    return QColor(0x77, 0x77, 0x77);
+}
+
 /// Monta a linha da arvore. Recursiva porque a arvore tambem e.
 QTreeWidgetItem* build_tree_item(const core::SpaceNode& node) {
     auto* item = new QTreeWidgetItem;
     item->setText(0, QString::fromStdString(node.display_name));
     item->setText(1, QString::fromStdString(core::format_bytes(node.allocated_bytes)));
     item->setText(2, QString::number(node.file_count));
-    item->setToolTip(0, QString::fromStdString(node.path));
+
+    const auto& what = node.classification;
+    item->setText(3, QString::fromStdString(core::to_string(what.content_class)));
+    item->setText(4, QString::fromStdString(what.application));
+    item->setForeground(3, class_color(what.content_class));
+
+    // O motivo vai junto do veredito. Etiqueta sem motivo so pode ser
+    // acreditada ou nao; com o motivo, da para conferir.
+    QString tip = QString::fromStdString(node.path);
+    if (!what.what_it_is.empty()) {
+        tip += QStringLiteral("\n\n%1").arg(QString::fromStdString(what.what_it_is));
+    }
+    if (!what.reason.empty()) {
+        tip += QStringLiteral("\n\nPor que: %1").arg(QString::fromStdString(what.reason));
+    }
+    if (!what.consequence.empty()) {
+        tip += QStringLiteral("\n\nAo remover: %1").arg(QString::fromStdString(what.consequence));
+    }
+    if (what.confidence > 0.0) {
+        tip += QStringLiteral("\n\nConfianca da identificacao: %1%")
+                   .arg(static_cast<int>(what.confidence * 100));
+    }
+    item->setToolTip(0, tip);
+    item->setToolTip(3, tip);
 
     if (!node.complete()) {
         // Parte da pasta nao pode ser lida: o numero e um piso. Dizer isso na
@@ -524,6 +565,17 @@ void MainWindow::show_survey(const core::SpaceSurvey& survey) {
                  QString::fromStdString(core::format_bytes(survey.used_bytes())),
                  QString::fromStdString(core::format_bytes(survey.identified_bytes)))
             .arg(static_cast<int>(survey.coverage() * 100));
+
+    body += QStringLiteral(
+                "<p><b>Do que foi localizado:</b> "
+                "<span style='color:#2E7D32'>%1 seguro para limpar</span> &middot; "
+                "<span style='color:#E68A00'>%2 com consequencia</span> &middot; "
+                "<span style='color:#777'>%3 a revisar</span> &middot; "
+                "<span style='color:#C0392B'>%4 protegido</span></p>")
+                .arg(QString::fromStdString(core::format_bytes(survey.by_class.safe_bytes)),
+                     QString::fromStdString(core::format_bytes(survey.by_class.consequence_bytes)),
+                     QString::fromStdString(core::format_bytes(survey.by_class.review_bytes)),
+                     QString::fromStdString(core::format_bytes(survey.by_class.protected_bytes)));
 
     // O numero que faltava. Sem ele, uma lista de pastas nao diz se explica o
     // disco ou so um pedaco dele — e o usuario fica achando que o espaco sumiu
