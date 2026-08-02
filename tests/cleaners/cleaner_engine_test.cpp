@@ -155,8 +155,14 @@ TEST_CASE("raiz que nao existe nao vira erro", "[cleaner_engine]") {
 // Cada limpador que acompanha o programa precisa estar completo. Oferecer
 // limpeza sem dizer o que sai e o que fica nao e consentimento informado.
 TEST_CASE("todo limpador declarado se descreve por inteiro", "[cleaner_engine][integration]") {
+    const CleanerEngine engine{nothing_protected()};
+    std::uint64_t total = 0;
+
     for (const auto& spec : available_cleaners()) {
-        INFO(spec.id);
+        const auto preview = engine.preview(spec);
+        total += preview.bytes;
+        INFO(spec.id << " => " << preview.bytes << " bytes em " << preview.file_count
+                     << " arquivos");
 
         CHECK_FALSE(spec.id.empty());
         CHECK_FALSE(spec.display_name.empty());
@@ -177,6 +183,11 @@ TEST_CASE("todo limpador declarado se descreve por inteiro", "[cleaner_engine][i
             CHECK(std::filesystem::path(root).is_absolute());
         }
     }
+
+    // Numero informativo: quanto os limpadores alcancam nesta maquina. Nao vira
+    // asserção de valor porque depende do computador que roda a suite.
+    INFO("total que os limpadores alcancam: " << total << " bytes");
+    SUCCEED("previa concluida");
 }
 
 // O perfil do navegador nao pode virar raiz permitida: senha, favorito e
