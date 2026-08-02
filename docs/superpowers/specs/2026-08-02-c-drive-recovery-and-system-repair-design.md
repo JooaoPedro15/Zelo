@@ -61,7 +61,7 @@ O disco D permanece fora deste escopo. A corrupção lógica já observada nele 
 1. Enumerar todos os candidatos relevantes do disco C, sem um teto arbitrário de recuperação.
 2. Explicar por que cada item é ou não seguro.
 3. Executar de uma vez todos os candidatos automáticos aprovados.
-4. Oferecer ações guiadas para desinstalação, remoção de recursos e movimentação de arquivos pessoais.
+4. Oferecer ações guiadas para desinstalação e remoção de recursos, além de orientar a movimentação manual de arquivos pessoais.
 5. Diagnosticar integridade do Windows e executar somente reparos sustentados por evidência.
 6. Explicar o uso de CPU por processo e separar indícios de software, hardware e diagnóstico inconclusivo.
 7. Medir e preservar um relatório fiel da execução.
@@ -108,7 +108,7 @@ Item cuja origem, dependência ou consequência não pôde ser demonstrada. Não
 
 ### Máximo seguro
 
-Todos os itens seguros do plano confirmado são processados, mesmo depois de o volume superar 10% livre. Uma nova análise é feita ao final. O processo só termina quando não houver outros candidatos automáticos comprovados, o usuário cancelar ou restarem apenas ações guiadas/não comprovadas.
+Todos os itens seguros do plano confirmado são processados, mesmo depois de o volume superar 10% livre. Uma execução processa somente esse plano e termina depois de verificar cada item. A análise posterior pode descobrir outros candidatos, mas eles formam um novo plano e exigem nova confirmação; nenhum item novo ou alterado é executado implicitamente.
 
 ## 7. Arquitetura proposta
 
@@ -120,7 +120,7 @@ flowchart LR
     D --> E["Confirmação do usuário"]
     E --> F["Executor local sem elevação"]
     E --> G["Broker elevado mínimo"]
-    F --> H["Verificação e nova análise"]
+    F --> H["Verificação dos alvos do plano"]
     G --> H
     H --> I["Relatório persistente"]
 ```
@@ -140,7 +140,7 @@ Provedores iniciais:
 - pacotes Appx/MSIX e Microsoft Store;
 - componentes e resíduos de manutenção do Windows;
 - restos de aplicativos removidos;
-- arquivos pessoais grandes, apenas para orientação;
+- arquivos pessoais grandes, apenas para orientação e abertura do local;
 - integridade do sistema;
 - desempenho, inicialização e CPU.
 
@@ -171,6 +171,10 @@ Produz uma fotografia imutável da seleção. Uma nova varredura gera outro plan
 - **Broker elevado:** processo mínimo, iniciado somente para uma ação autorizada, sem interface e sem aceitar comandos de shell livres.
 - **Executores gerenciados:** adaptadores para MSI, Appx, DISM, Storage, SFC e CHKDSK.
 
+Uma `ExecutionOperation` corresponde a uma confirmação do usuário e a um manifesto. Quando houver ações elevadas, uma única instância do broker é iniciada para essa operação e executa sequencialmente apenas as ações tipadas contidas no manifesto. O nonce autoriza somente o estabelecimento dessa operação e é consumido na conexão; cada ação possui ID estável e estado persistido que impede repetição. Uma operação exclusivamente local não inicia o broker.
+
+O broker se comunica apenas por IPC local. Ele autentica o processo cliente, o usuário e a sessão, recebe o manifesto canônico com nonce e validade e revalida independentemente cada ação tipada. Um hash enviado pela interface não constitui autorização.
+
 ### 7.6 Verificador
 
 Confirma o estado de cada alvo, mede o volume, repete o diagnóstico relevante e produz `sucesso`, `parcial`, `falha`, `cancelado`, `aguardando reinício` ou `ainda executando`.
@@ -183,7 +187,7 @@ Cada candidato contém pelo menos:
 
 - identificador estável;
 - provedor e categoria;
-- caminho, pacote, produto ou recurso alvo;
+- alvo tipado como `FileTarget` ou `ManagedAction`;
 - caminho final resolvido, volume e identidade do arquivo quando aplicável;
 - proprietário e evidências de origem;
 - evidências de segurança e dependências encontradas;
@@ -195,6 +199,20 @@ Cada candidato contém pelo menos:
 - token de frescor para revalidação;
 - estado de seleção.
 
+`FileTarget` identifica um arquivo pelo caminho final, volume, file ID, metadados relevantes e identidade observada no momento do plano.
+
+Diretórios são apenas agrupamentos de apresentação. Antes da confirmação, todo conteúdo elegível é expandido em `FileTarget`s individuais. A execução nunca faz exclusão recursiva aberta nem inclui filhos criados depois do plano. Um diretório pode ser removido pelo mesmo mecanismo seguro somente se estiver vazio e conservar a identidade confirmada.
+
+`ManagedAction` registra provedor, operação fechada e escopo exato:
+
+- MSI: `ProductCode`, contexto de instalação e SID quando aplicável;
+- Appx instalado: `PackageFullName` e SID alvo;
+- Appx provisionado: `PackageName` de provisionamento, como ação distinta;
+- DISM/SFC/CHKDSK/Storage: identificador de receita pertencente ao catálogo fechado;
+- desinstalador Win32: executável, argumentos, identidade do arquivo e registro de origem.
+
+Uma `UninstallString` nunca é entregue ao shell como texto livre. Executável, argumentos, assinatura/identidade e registro devem continuar iguais aos do plano.
+
 ### 8.2 Plano
 
 O plano contém:
@@ -205,8 +223,10 @@ O plano contém:
 - versão dos coletores e cobertura;
 - candidatos exatos e respectivas identidades;
 - totais automáticos, guiados e não comprovados;
-- resumo criptográfico ou representação canônica assinada para o broker;
+- manifesto canônico de uma `ExecutionOperation`, vinculado a usuário, sessão, volume, validade e nonce de conexão de uso único;
 - consentimentos e consequências apresentados.
+
+Hash ou assinatura fornecida apenas pela interface não concede autoridade. O broker autentica o canal e o cliente, consome o nonce da operação uma única vez e aplica novamente catálogo, escopo e políticas de segurança. Cada ID de ação só pode avançar uma vez a partir do estado persistido; reconciliação nunca repete automaticamente uma ação de resultado desconhecido.
 
 ### 8.3 Resultado
 
@@ -220,6 +240,8 @@ O histórico separa:
 - reparos tentados e verificação correspondente;
 - reinicialização pendente;
 - cobertura final do diagnóstico.
+
+Antes da primeira mutação, o histórico persiste o identificador da operação, o plano autorizado e o estado de cada ação. Também mantém timestamps, PID/identidade do broker e dados suficientes para reconciliar uma operação depois de queda da interface ou reinício.
 
 A persistência existente em SQLite deve receber migração compatível com históricos antigos.
 
@@ -238,7 +260,7 @@ A persistência existente em SQLite deve receber migração compatível com hist
 7. Exibir confirmação com alvos, totais e consequências.
 8. Revalidar a identidade de cada alvo imediatamente antes da ação.
 9. Executar ações locais e elevadas uma por vez por categoria.
-10. Medir o espaço depois da execução, repetir a análise e preservar o resultado.
+10. Medir o espaço depois da execução, preservar o resultado e verificar automaticamente somente os alvos e diagnósticos afetados pelo plano. Uma análise completa para descobrir novos candidatos continua sendo uma ação explícita e sempre gera outro plano.
 
 O piso de 10% apenas controla a severidade visual do alerta. Ele não participa da condição de parada da limpeza.
 
@@ -252,7 +274,7 @@ Para o temporário do Codex:
 
 - o provedor deve marcá-lo como dependente do fechamento do aplicativo;
 - arquivos somente leitura não podem ser ignorados silenciosamente;
-- o atributo somente leitura só pode ser tratado depois de confirmar raiz temporária conhecida, ausência de handles, inatividade e identidade do arquivo;
+- o atributo somente leitura só pode ser alterado pelo handle já validado, depois de confirmar raiz temporária conhecida, ausência de handles, inatividade e identidade do arquivo; se a exclusão falhar, o atributo original deve ser restaurado;
 - arquivos novos ou alterados após a confirmação são ignorados;
 - falhas permanecem no resultado com motivo e tamanho.
 
@@ -264,7 +286,7 @@ O provedor deve:
 
 - enumerar produtos e patches em todos os contextos relevantes;
 - relacionar arquivos locais com produto, patch e estado de instalação;
-- apresentar aplicativos pouco usados como ação de desinstalação;
+- apresentar aplicativos pouco usados somente como ação guiada de desinstalação;
 - invocar Windows Installer ou o desinstalador registrado;
 - medir o espaço liberado pelo conjunto da desinstalação;
 - diagnosticar cache inconsistente sem prometer que um arquivo sem referência aparente é seguro para exclusão direta.
@@ -273,7 +295,7 @@ Se não existir um mecanismo suportado que comprove a remoção, o item permanec
 
 ### 10.3 WindowsApps e pacotes Appx/MSIX
 
-O provedor deve enumerar pacotes por usuário e provisionados, dependências e frameworks. Aplicativos opcionais e pouco usados podem ser removidos por `Remove-AppxPackage` ou DISM, conforme o contexto.
+O provedor deve enumerar separadamente pacotes instalados por usuário e pacotes provisionados, além de dependências e frameworks. Remover provisionamento não equivale a remover instalações existentes. Aplicativos opcionais e pouco usados podem ser oferecidos como ações guiadas por `Remove-AppxPackage` ou DISM, com SID e escopo explícitos.
 
 Devem ser excluídos da seleção automática:
 
@@ -290,9 +312,9 @@ Pastas dentro de WindowsApps nunca são apagadas diretamente.
 
 O tamanho real deve ser obtido por `DISM /Online /Cleanup-Image /AnalyzeComponentStore`, que considera hard links.
 
-Quando o Windows recomendar limpeza, o aplicativo pode oferecer `StartComponentCleanup`. Também pode usar categorias oficiais de limpeza do Windows Update e apresentar recursos opcionais não usados para decisão do usuário.
+Quando o Windows recomendar limpeza, o aplicativo pode oferecer `StartComponentCleanup` como `ManagedCleanupRecipe` fechada. Ela pertence à limpeza gerenciada, não ao reparo: registra a estimativa fornecida pelo DISM quando disponível, marca bytes lógicos como não informados e mede separadamente a variação real do volume com sua incerteza. Também pode usar categorias oficiais de limpeza do Windows Update e apresentar recursos opcionais não usados como ações guiadas.
 
-`Windows.old` só pode ser removido com confirmação explícita de que a reversão da versão anterior será perdida.
+`Windows.old` é sempre uma ação guiada e só pode ser removido com confirmação explícita de que a reversão da versão anterior será perdida.
 
 Não usar `ResetBase` e não apagar WinSxS manualmente.
 
@@ -316,16 +338,18 @@ O Cleaner deve tentar resolver a origem e explicar as evidências consultadas. S
 
 1. Resolver pastas conhecidas por APIs do Windows, sem confiar apenas em variáveis de ambiente.
 2. Abrir a raiz e o alvo com flags adequadas para inspeção de reparse points.
-3. Rejeitar ou tratar explicitamente qualquer ancestral redirecionado.
+3. Rejeitar reparse points na raiz permitida ou em seus ancestrais para exclusões automáticas por arquivo. Um provedor gerenciado só pode atravessar redirecionamentos quando sua API oficial não opera por caminho e valida o objeto por identidade própria.
 4. Obter caminho final, volume e identidade do arquivo pelo handle.
 5. Aplicar regras de exclusão ao destino final, não apenas ao caminho digitado.
 6. Vincular essa identidade ao plano confirmado.
-7. Reabrir/revalidar no broker imediatamente antes da ação.
-8. Preferir exclusão no mesmo handle validado ou uma API que preserve a identidade; nunca validar, fechar e apagar um caminho textual sem proteção contra troca.
+7. Manter aberto, da validação até a disposição, o mesmo handle criado sem seguir reparse points e revalidar sua identidade no executor ou broker.
+8. Excluir pelo handle validado ou por API gerenciada que opere sobre a identidade tipada. Não existe fallback de exclusão por caminho textual; se o método seguro não estiver disponível, o item é ignorado.
 9. Rejeitar qualquer alvo novo, alterado, movido ou fora do volume planejado.
 10. Registrar o motivo sem tentar “contornar” a proteção.
 
 O broker aceita uma lista fechada de tipos de ação e parâmetros validados. Ele não recebe linhas de comando arbitrárias da interface.
+
+O canal IPC é exclusivamente local, com ACL ligada ao SID de logon e à sessão. O broker valida o PID, token, sessão e identidade do executável cliente, além do volume e validade do manifesto. Cada operação usa uma conexão e um nonce consumido uma única vez para impedir replay. As ações dessa operação são sequenciais, possuem IDs persistidos e não podem ser repetidas. O broker não confia no hash, caminho ou decisão de segurança enviados pela interface: ele repete as validações aplicáveis antes da mutação.
 
 ## 12. Diagnóstico e reparo do Windows
 
@@ -343,15 +367,38 @@ O Cleaner pode coletar:
 - integridade declarada do disco e eventos WHEA/armazenamento;
 - inicialização e atividade em segundo plano.
 
-### 12.2 Reparos condicionais
+### 12.2 Receitas gerenciadas e reparos condicionais
 
-- Se houver corrupção da imagem ou arquivos protegidos, executar DISM com `RestoreHealth` e depois SFC com `scannow`, seguindo a ordem suportada pela Microsoft.
-- Executar `StartComponentCleanup` somente depois da análise correspondente.
-- Agendar CHKDSK com correção apenas se a análise encontrar erros e após confirmação de reinicialização/bloqueio.
-- Aplicar correções de Store ou Windows Update somente quando o diagnóstico apontar esse subsistema.
-- Repetir o diagnóstico que justificou a ação.
+Toda ação oficial é uma `ManagedRecipe` fechada de um destes tipos:
 
-Reparos não contam como espaço liberado. Um comando com código zero também não basta: o estado final deve ser verificado.
+- `DiagnosticRecipe`: somente coleta estado e não modifica o sistema;
+- `ManagedCleanupRecipe`: remove conteúdo pelo mecanismo oficial e contribui para as métricas de limpeza;
+- `RepairRecipe`: corrige integridade ou funcionamento e não conta como espaço liberado.
+
+Cada receita define:
+
+- evidência que a habilita e versões do Windows suportadas;
+- API ou executável e argumentos fixos;
+- elevação, rede ou fonte de reparo necessárias;
+- efeitos e confirmação apresentada;
+- política de timeout, cancelamento e reinicialização;
+- códigos de saída aceitos;
+- verificação posterior obrigatória.
+
+O catálogo inicial pode conter somente receitas completamente especificadas para:
+
+- analisar o armazenamento de componentes (`DiagnosticRecipe`);
+- limpar o armazenamento de componentes (`ManagedCleanupRecipe`);
+- verificar a imagem do Windows e os arquivos protegidos (`DiagnosticRecipe`);
+- restaurar a imagem do Windows e reparar arquivos protegidos (`RepairRecipe`);
+- analisar o NTFS do C (`DiagnosticRecipe`) e agendar correção quando houver evidência (`RepairRecipe`);
+- redefinir o cache da Microsoft Store quando o erro diagnosticado for especificamente desse cache (`RepairRecipe`).
+
+Se houver corrupção da imagem ou de arquivos protegidos, a cadeia autorizada executa DISM com `RestoreHealth` e depois SFC com `scannow`, seguindo a ordem suportada pela Microsoft. `StartComponentCleanup` exige a análise correspondente. CHKDSK com correção exige erro detectado e confirmação de reinicialização/bloqueio.
+
+Reparos do Windows Update, Store ou qualquer outro subsistema que ainda não possuam receita fechada permanecem apenas como orientação e abertura da ferramenta oficial. Nenhuma sequência genérica de “reset” é montada dinamicamente.
+
+Reparos não contam como espaço liberado. Limpezas gerenciadas registram estimativa, bytes lógicos quando o provedor os fornecer e delta observado do volume como métricas distintas. Um comando com código zero também não basta: o estado final deve ser verificado.
 
 ## 13. Diagnóstico de CPU e distinção entre software e hardware
 
@@ -412,10 +459,12 @@ Ocioso
   -> Confirmando
   -> Executando
   -> Verificando
-  -> Sucesso | Parcial | Falha | Cancelado | Ainda executando | Aguardando reinício
+  -> Sucesso | Parcial | Falha | Cancelado
 ```
 
-O resultado final permanece visível. Uma nova análise é uma ação explícita e não sobrescreve silenciosamente o relatório anterior.
+`Executando`, `Cancelamento solicitado`, `Ainda executando` e `Aguardando reinício` são estados não terminais. `Cancelado` só é registrado depois de confirmar que a operação terminou.
+
+O resultado final permanece visível. A verificação automática pós-execução consulta somente os alvos e diagnósticos afetados pelo plano. Uma nova análise completa é uma ação explícita e não sobrescreve silenciosamente o relatório anterior.
 
 ### 14.5 Acessibilidade
 
@@ -430,11 +479,15 @@ O resultado final permanece visível. Uma nova análise é uma ação explícita
 
 - O progresso é publicado por etapa e por ação.
 - Somente uma instância de cada operação pode estar ativa.
+- Antes da primeira mutação, persistir a operação, o manifesto do plano e o estado individual das ações.
 - Timeout não encerra semanticamente uma operação ainda viva; o estado permanece “ainda executando” até confirmação.
 - Cancelamento é cooperativo e nunca interrompe uma operação do Windows em um ponto inseguro.
+- “Cancelamento solicitado” permanece não terminal até o processo ou broker confirmar o término.
 - Falha individual produz resultado parcial e não apaga os sucessos anteriores.
 - O usuário recebe motivo, alvo, tamanho e ação possível para cada falha.
-- Ações que dependem de reinício ficam pendentes e são verificadas na próxima abertura.
+- O broker persiste PID/identidade, progresso e resultado independentemente da janela.
+- Na abertura seguinte, o Cleaner reconcilia operações pendentes e nunca as repete automaticamente.
+- Ações que dependem de reinício ficam pendentes e são verificadas na próxima abertura antes de receber estado terminal.
 
 ## 16. Estratégia de testes
 
@@ -459,7 +512,11 @@ O desenvolvimento seguirá testes antes da implementação de cada comportamento
 - arquivo novo entre prévia e execução;
 - mudança de volume ou identidade;
 - tentativa de enviar ação não autorizada ao broker;
+- cliente falso ou de outra sessão tentando usar o broker;
+- replay de nonce, plano expirado ou volume divergente;
+- segunda execução de um ID de ação já consumido dentro da mesma operação;
 - arquivo somente leitura, bloqueado e alterado;
+- filho criado dentro de diretório depois da confirmação;
 - caminho final que cai em área não autorizada.
 
 ### 16.3 Testes de integração
@@ -469,7 +526,8 @@ O desenvolvimento seguirá testes antes da implementação de cada comportamento
 - nunca executar reparos reais do Windows em testes automatizados;
 - validar migração do SQLite e leitura do histórico antigo;
 - comprovar que resultado não é sobrescrito por prévia;
-- comprovar que timeout não permite execução duplicada.
+- comprovar que timeout não permite execução duplicada;
+- simular queda antes, durante e depois da primeira mutação e reconciliar o estado sem repetir ações.
 
 ### 16.4 Testes de interface
 
@@ -486,30 +544,34 @@ O desenvolvimento seguirá testes antes da implementação de cada comportamento
 3. Medir espaço livre inicial.
 4. Pedir fechamento dos aplicativos necessários.
 5. Executar somente o plano confirmado.
-6. Medir variação real e repetir a análise.
+6. Medir a variação real e verificar os alvos afetados.
 7. Executar reparos aprovados separadamente.
 8. Verificar novamente os problemas diagnosticados.
 9. Entregar relatório com limitações e pendências.
+
+Uma análise completa posterior é iniciada pelo usuário e, se encontrar novos candidatos, produz outro plano. Nesta entrega, a orientação sobre arquivos pessoais abre o local e explica opções de destino; o Cleaner não move nem exclui esses arquivos.
 
 Não haverá quarentena. O relatório preserva a auditoria, não os arquivos excluídos.
 
 ## 17. Critérios de aceitação
 
 1. A limpeza não termina ao alcançar 10% livre.
-2. A reanálise não encontra candidatos automáticos verdes omitidos pela execução anterior.
+2. Todo item automático do plano confirmado recebe resultado individual. Filhos ou candidatos descobertos ou alterados depois da confirmação aparecem somente em um novo plano e nunca são executados sem nova confirmação.
 3. O resultado mostra estimativa, bytes lógicos e variação real separadamente.
 4. Arquivos adicionados ou alterados depois da confirmação não são apagados.
 5. Arquivos somente leitura e bloqueados são tratados ou explicados, nunca ignorados silenciosamente.
 6. Nenhum arquivo pessoal é removido automaticamente.
 7. Windows Installer, WindowsApps e WinSxS não sofrem exclusão direta.
 8. Aplicativos e componentes são removidos pelo mecanismo oficial.
-9. O broker rejeita redirecionamentos, trocas e ações fora do plano.
+9. O broker rejeita redirecionamentos, trocas, cliente falso, replay, manifesto expirado e ações fora do plano.
 10. A interface não permite duas operações iguais simultâneas.
 11. O resultado permanece visível após a execução.
-12. Reparos possuem diagnóstico anterior e verificação posterior.
+12. Reparos possuem receita fechada, diagnóstico anterior e verificação posterior.
 13. Uma análise indisponível reduz a cobertura e impede nota completa.
 14. O relatório distingue provável software, possível hardware e inconclusivo.
 15. Testes automatizados não alteram o Windows real.
+16. Queda da interface, timeout e reinicialização preservam uma operação não terminal e não causam repetição automática.
+17. `StartComponentCleanup` aparece como limpeza gerenciada e contribui apenas para as métricas de limpeza suportadas pelo provedor, nunca para o total de reparos.
 
 ## 18. Sequência de entrega
 
