@@ -199,6 +199,9 @@ ScanResult StorageScanner::scan(const std::filesystem::path& root, std::stop_tok
             // desconectado. Contabiliza e segue: uma pasta ilegivel nao pode
             // derrubar a varredura inteira.
             ++result.skipped_count;
+            if (result.unreadable_paths.size() < options_.unreadable_paths_kept) {
+                result.unreadable_paths.push_back(current.path.string());
+            }
             continue;
         }
 

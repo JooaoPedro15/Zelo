@@ -1,19 +1,24 @@
 #pragma once
 
+#include <commands/installer_cache.hpp>
 #include <core/models/cleanup_plan.hpp>
+#include <core/models/space_tree.hpp>
 #include <core/usecases/quick_analysis.hpp>
 #include <monitor/folder_watcher.hpp>
 
 #include <memory>
+#include <stop_token>
 
 #include <QMainWindow>
 
+class QComboBox;
 class QLabel;
 class QLineEdit;
 class QListWidget;
 class QProgressBar;
 class QPushButton;
 class QTextBrowser;
+class QTreeWidget;
 
 namespace cleaner::ui {
 
@@ -70,6 +75,17 @@ private:
     /// Mostra o que mudou entre os dois retratos mais recentes.
     void show_growth();
 
+    QWidget* build_space_tab();
+
+    /// Varre a pasta escolhida e monta a arvore, com a conta fechada contra o
+    /// que o Windows informa sobre o volume.
+    void survey_space();
+
+    /// Cancela a varredura em curso.
+    void cancel_survey();
+
+    void show_survey(const core::SpaceSurvey& survey);
+
     QWidget* build_cloud_tab();
 
     /// Mede as pastas sincronizadas, separando o que ocupa disco do que so
@@ -91,6 +107,12 @@ private:
     /// Confere quais instaladores guardados pelo Windows nenhum programa
     /// instalado ainda reivindica, e oferece removê-los.
     void review_installer_cache();
+
+    /// A remocao propriamente dita. Nao esta ligada a nenhum botao: apagar um
+    /// instalador que ainda tem dono quebra reparar e desinstalar aquele
+    /// programa, e sem quarentena nao ha como voltar atras.
+    void remove_orphan_installers_after_confirmation(
+        const commands::InstallerCacheReport& report);
 
     QWidget* build_history_tab();
 
@@ -118,6 +140,17 @@ private:
     QLabel* growth_summary_ = nullptr;
     QTextBrowser* growth_ = nullptr;
     QPushButton* snapshot_button_ = nullptr;
+    QComboBox* space_root_ = nullptr;
+    QTreeWidget* space_tree_ = nullptr;
+    QLabel* space_summary_ = nullptr;
+    QPushButton* space_button_ = nullptr;
+    QPushButton* space_cancel_ = nullptr;
+    QLabel* space_progress_ = nullptr;
+
+    /// Vive enquanto a varredura de espaco roda. Existe para o botao de cancelar
+    /// ter o que pedir.
+    std::unique_ptr<std::stop_source> survey_stop_;
+
     QListWidget* cloud_folders_ = nullptr;
     QTextBrowser* cloud_ = nullptr;
     QPushButton* cloud_release_button_ = nullptr;

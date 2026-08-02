@@ -1,7 +1,9 @@
-add_library(cleaner_scanner STATIC
+﻿add_library(cleaner_scanner STATIC
     scanner.cpp
     include/scanner/scanner.hpp
     storage_scanner.cpp
+    space_survey.cpp
+    include/scanner/space_survey.hpp
     include/scanner/storage_scanner.hpp
     volume_geometry.cpp
     include/scanner/volume_geometry.hpp
@@ -13,6 +15,8 @@ target_include_directories(cleaner_scanner
 )
 
 target_link_libraries(cleaner_scanner
+    PUBLIC
+        cleaner_core
     PRIVATE
         cleaner_warnings
 )

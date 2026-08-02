@@ -302,11 +302,21 @@ core::ReclaimableInfo ReclaimableCollector::collect(std::stop_token token) const
         }
 
         const auto result = storage_scanner.scan(location.path, token);
-        if (!result.completed) {
+
+        // Cancelamento e a unica razao para parar: o usuario pediu. Antes,
+        // qualquer local incompleto abortava o laco e levava junto todos os
+        // seguintes — uma pasta ilegivel apagava o resto do relatorio, e a area
+        // inteira aparecia como indisponivel.
+        if (token.stop_requested()) {
             return info;
         }
 
-        location.size_bytes = result.total_bytes;
+        // O numero que importa e o que ocupa disco, nao o que os arquivos
+        // declaram. Os perfis de aplicativo ja usavam o alocado; usar o logico
+        // aqui fazia dois numeros de naturezas diferentes somarem na mesma
+        // tela.
+        location.size_bytes = result.allocated_bytes;
+        location.measured_completely = result.completed;
         info.locations.push_back(location);
     }
 

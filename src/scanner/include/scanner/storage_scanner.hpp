@@ -82,6 +82,13 @@ struct ScanResult {
     /// apresentado como aproximado em vez de passar por exato.
     std::size_t skipped_count = 0;
 
+    /// Onde a leitura falhou, ate um teto.
+    ///
+    /// Contar quantas pastas ficaram de fora responde "o total esta completo?".
+    /// So dizer quais responde "onde procurar o que falta" — e sem isso o
+    /// espaco nao explicado vira um numero sem endereco.
+    std::vector<std::string> unreadable_paths;
+
     /// Falso quando a varredura foi cancelada ou interrompida. O resultado
     /// continua utilizavel, mas parcial — e a interface precisa dizer isso.
     bool completed = false;
@@ -115,6 +122,11 @@ struct ScanOptions {
     /// tudo abaixo dela, e uma pasta intermediaria vazia ainda e o caminho por
     /// onde a soma sobe.
     bool emit_all_directories = false;
+
+    /// Quantos caminhos ilegiveis guardar. O teto existe porque uma varredura
+    /// sem permissao em milhares de pastas encheria a memoria com uma lista que
+    /// ninguem leria inteira; a contagem continua exata.
+    std::size_t unreadable_paths_kept = 50;
 };
 
 /// Percorre uma arvore de diretorios somando tamanho, sem alterar nada.

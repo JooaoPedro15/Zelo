@@ -8,6 +8,7 @@
 #include <ui/background.hpp>
 
 #include <collectors/startup_collector.hpp>
+#include <scanner/space_survey.hpp>
 #include <commands/command_catalog.hpp>
 #include <commands/installer_cache.hpp>
 #include <commands/startup_control.hpp>
@@ -29,8 +30,10 @@
 #include <spdlog/spdlog.h>
 
 #include <QApplication>
+#include <QComboBox>
 #include <QDateTime>
 #include <QDialog>
+#include <QTreeWidget>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -223,6 +226,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     tabs_ = new QTabWidget(central);
     tabs_->addTab(splitter, QStringLiteral("Analise"));
+    tabs_->addTab(build_space_tab(), QStringLiteral("Onde o espaco esta"));
     tabs_->addTab(growth_page, QStringLiteral("O que cresceu"));
     tabs_->addTab(cloud_page, QStringLiteral("Nuvem"));
     tabs_->addTab(build_windows_tab(), QStringLiteral("Limpezas do Windows"));
@@ -409,6 +413,194 @@ void MainWindow::manage_startup() {
 
         start_analysis();
     }
+}
+
+QWidget* MainWindow::build_space_tab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    auto* row = new QHBoxLayout;
+    row->addWidget(new QLabel(QStringLiteral("Analisar:"), page));
+
+    space_root_ = new QComboBox(page);
+
+    // As tres perguntas mais comuns, na ordem em que costumam ser feitas: onde
+    // esta o espaco do meu perfil, do disco inteiro, e do que o Windows guarda.
+    const auto profile = collectors::collect_system_paths().user_profile;
+    if (!profile.empty()) {
+        const std::filesystem::path home(profile);
+
+        space_root_->addItem(QStringLiteral("Meus dados (%1)").arg(QString::fromStdString(profile)),
+                             QString::fromStdWString(home.wstring()));
+        space_root_->addItem(QStringLiteral("AppData"),
+                             QString::fromStdWString((home / L"AppData").wstring()));
+    }
+    space_root_->addItem(QStringLiteral("Disco C: inteiro"), QStringLiteral("C:\\"));
+    space_root_->addItem(QStringLiteral("Windows"), QStringLiteral("C:\\Windows"));
+    space_root_->addItem(QStringLiteral("Programas"), QStringLiteral("C:\\Program Files"));
+    row->addWidget(space_root_, 1);
+
+    space_button_ = new QPushButton(QStringLiteral("Analisar"), page);
+    connect(space_button_, &QPushButton::clicked, this, &MainWindow::survey_space);
+    row->addWidget(space_button_);
+
+    space_cancel_ = new QPushButton(QStringLiteral("Cancelar"), page);
+    space_cancel_->setEnabled(false);
+    connect(space_cancel_, &QPushButton::clicked, this, &MainWindow::cancel_survey);
+    row->addWidget(space_cancel_);
+
+    layout->addLayout(row);
+
+    space_progress_ = new QLabel(page);
+    space_progress_->setWordWrap(true);
+    layout->addWidget(space_progress_);
+
+    space_summary_ = new QLabel(page);
+    space_summary_->setWordWrap(true);
+    space_summary_->setTextFormat(Qt::RichText);
+    layout->addWidget(space_summary_);
+
+    space_tree_ = new QTreeWidget(page);
+    space_tree_->setColumnCount(3);
+    space_tree_->setHeaderLabels(
+        {QStringLiteral("Pasta"), QStringLiteral("Ocupa"), QStringLiteral("Arquivos")});
+    space_tree_->setColumnWidth(0, 420);
+    layout->addWidget(space_tree_, 1);
+
+    return page;
+}
+
+void MainWindow::cancel_survey() {
+    if (survey_stop_ != nullptr) {
+        survey_stop_->request_stop();
+        space_progress_->setText(QStringLiteral("Cancelando..."));
+    }
+}
+
+namespace {
+
+/// Monta a linha da arvore. Recursiva porque a arvore tambem e.
+QTreeWidgetItem* build_tree_item(const core::SpaceNode& node) {
+    auto* item = new QTreeWidgetItem;
+    item->setText(0, QString::fromStdString(node.display_name));
+    item->setText(1, QString::fromStdString(core::format_bytes(node.allocated_bytes)));
+    item->setText(2, QString::number(node.file_count));
+    item->setToolTip(0, QString::fromStdString(node.path));
+
+    if (!node.complete()) {
+        // Parte da pasta nao pode ser lida: o numero e um piso. Dizer isso na
+        // propria linha evita que o usuario persiga uma diferenca que o
+        // programa ja sabe explicar.
+        item->setText(0, QStringLiteral("%1  (leitura parcial)")
+                             .arg(QString::fromStdString(node.display_name)));
+    }
+
+    for (const auto& child : node.children) {
+        item->addChild(build_tree_item(child));
+    }
+    return item;
+}
+
+}
+
+void MainWindow::show_survey(const core::SpaceSurvey& survey) {
+    space_tree_->clear();
+
+    auto* root = build_tree_item(survey.root);
+    root->setText(0, QString::fromStdString(survey.root.path));
+    space_tree_->addTopLevelItem(root);
+    root->setExpanded(true);
+
+    QString body =
+        QStringLiteral(
+            "<table cellspacing='0' cellpadding='4'>"
+            "<tr><td><b>Disco %1</b></td><td>%2 no total</td><td>%3 livres</td></tr>"
+            "<tr><td><b>Em uso</b></td><td>%4</td><td>segundo o Windows</td></tr>"
+            "<tr><td><b>Localizado aqui</b></td><td>%5</td><td>%6% do que esta em uso</td></tr>"
+            "</table>")
+            .arg(QString::fromStdString(survey.volume),
+                 QString::fromStdString(core::format_bytes(survey.volume_total_bytes)),
+                 QString::fromStdString(core::format_bytes(survey.volume_free_bytes)),
+                 QString::fromStdString(core::format_bytes(survey.used_bytes())),
+                 QString::fromStdString(core::format_bytes(survey.identified_bytes)))
+            .arg(static_cast<int>(survey.coverage() * 100));
+
+    // O numero que faltava. Sem ele, uma lista de pastas nao diz se explica o
+    // disco ou so um pedaco dele — e o usuario fica achando que o espaco sumiu
+    // sozinho.
+    if (const auto missing = survey.unexplained_bytes(); missing > 0) {
+        body += QStringLiteral(
+                    "<p><b>Fora desta pasta: %1.</b> Isso nao sumiu: esta em outros lugares do "
+                    "disco que esta analise nao percorreu. Escolha o disco inteiro acima para "
+                    "procurar.</p>")
+                    .arg(QString::fromStdString(
+                        core::format_bytes(static_cast<std::uint64_t>(missing))));
+    }
+
+    if (survey.unreadable_count > 0) {
+        QString examples;
+        for (std::size_t index = 0;
+             index < std::min<std::size_t>(3, survey.unreadable_examples.size()); ++index) {
+            examples += QStringLiteral("<br>%1")
+                            .arg(QString::fromStdString(survey.unreadable_examples.at(index))
+                                     .toHtmlEscaped());
+        }
+
+        body += QStringLiteral(
+                    "<p style='color:#E68A00'><b>%1 pastas nao puderam ser lidas</b> (permissao "
+                    "negada, ou em uso). O que ha nelas nao entrou na conta.%2</p>")
+                    .arg(survey.unreadable_count)
+                    .arg(examples);
+    }
+
+    if (!survey.complete) {
+        body += QStringLiteral(
+            "<p style='color:#E68A00'>A analise foi interrompida. Os numeros valem para o que "
+            "deu tempo de percorrer.</p>");
+    }
+
+    if (survey.root.online_only_bytes > 0) {
+        body += QStringLiteral(
+                    "<p style='color:gray'>Mais %1 em arquivos que moram so na nuvem. Nao "
+                    "ocupam espaco aqui e nao entram na conta acima.</p>")
+                    .arg(QString::fromStdString(
+                        core::format_bytes(survey.root.online_only_bytes)));
+    }
+
+    space_summary_->setText(body);
+}
+
+void MainWindow::survey_space() {
+    if (busy_) {
+        return;
+    }
+    busy_ = true;
+
+    const auto root = space_root_->currentData().toString().toStdWString();
+
+    space_button_->setEnabled(false);
+    space_cancel_->setEnabled(true);
+    space_progress_->setText(
+        QStringLiteral("Percorrendo... o disco inteiro leva alguns minutos."));
+
+    survey_stop_ = std::make_unique<std::stop_source>();
+
+    run_in_background<core::SpaceSurvey>(
+        this,
+        [root, token = survey_stop_->get_token()] {
+            return scanner::survey_space(root, "C:", scanner::SurveyOptions{}, token);
+        },
+        [this](core::SpaceSurvey survey) {
+            show_survey(survey);
+
+            space_progress_->setText(
+                survey.complete ? QStringLiteral("Analise concluida.")
+                                : QStringLiteral("Analise interrompida."));
+            space_button_->setEnabled(true);
+            space_cancel_->setEnabled(false);
+            survey_stop_.reset();
+            busy_ = false;
+        });
 }
 
 QWidget* MainWindow::build_cloud_tab() {
@@ -682,8 +874,24 @@ void MainWindow::review_installer_cache() {
     }
     body += QStringLiteral("</ul>");
 
-    windows_output_->setHtml(body);
+    // Analise sim, botao nao. Apagar um instalador que ainda tem dono quebra
+    // reparar e desinstalar aquele programa, e nao ha volta: nem quarentena,
+    // nem restauracao. Enquanto essas duas pecas nao existirem, esta pasta
+    // continua como protegida e o numero serve so para o usuario saber onde
+    // esta o espaco.
+    body += QStringLiteral(
+        "<p style='color:#777'><i>O Cleaner nao remove nada aqui. A separacao acima veio do "
+        "proprio Windows Installer, mas apagar por engano um instalador em uso quebraria "
+        "reparar e desinstalar aquele programa, sem volta. A remocao so sera oferecida quando "
+        "houver quarentena e restauracao.</i></p>");
 
+    windows_output_->setHtml(body);
+}
+
+/// Mantida fora do fluxo enquanto nao houver quarentena e restauracao. O codigo
+/// fica: a decisao foi adiar a oferta, nao descartar o trabalho.
+void MainWindow::remove_orphan_installers_after_confirmation(
+    const commands::InstallerCacheReport& report) {
     QMessageBox confirmation(this);
     confirmation.setWindowTitle(QStringLiteral("Remover instaladores sem dono"));
     confirmation.setTextFormat(Qt::RichText);

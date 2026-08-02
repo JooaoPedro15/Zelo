@@ -52,6 +52,11 @@ struct KnownLocation {
 
     /// Falso quando o local nao existe nesta maquina.
     bool present = false;
+
+    /// Falso quando parte do local nao pode ser lida. O tamanho continua util,
+    /// mas como piso: dizer "3 GB" quando na verdade e "3 GB do que deu para
+    /// ver" e prometer menos do que existe sem avisar.
+    bool measured_completely = true;
 };
 
 struct ReclaimableInfo {
