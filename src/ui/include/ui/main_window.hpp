@@ -75,6 +75,15 @@ private:
     /// Mostra o que mudou entre os dois retratos mais recentes.
     void show_growth();
 
+    QWidget* build_cleaners_tab();
+
+    /// Mede o que cada limpador removeria, sem alterar nada.
+    void preview_cleaners();
+
+    /// Executa os limpadores marcados, depois de confirmar item a item o que
+    /// sai e o que fica.
+    void run_selected_cleaners();
+
     QWidget* build_space_tab();
 
     /// Varre a pasta escolhida e monta a arvore, com a conta fechada contra o
@@ -140,6 +149,12 @@ private:
     QLabel* growth_summary_ = nullptr;
     QTextBrowser* growth_ = nullptr;
     QPushButton* snapshot_button_ = nullptr;
+    QTreeWidget* cleaners_list_ = nullptr;
+    QTextBrowser* cleaners_output_ = nullptr;
+    QPushButton* cleaners_preview_button_ = nullptr;
+    QPushButton* cleaners_run_button_ = nullptr;
+    QPushButton* cleaners_safe_button_ = nullptr;
+
     QComboBox* space_root_ = nullptr;
     QTreeWidget* space_tree_ = nullptr;
     QLabel* space_summary_ = nullptr;

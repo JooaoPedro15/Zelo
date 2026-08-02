@@ -23,6 +23,7 @@ target_link_libraries(cleaner_ui
     PRIVATE
         cleaner_collectors
         cleaner_scanner
+        cleaner_cleaners
         cleaner_storage
         spdlog::spdlog
         cleaner_warnings

@@ -7,6 +7,7 @@
 #include <collectors/cloud_folders.hpp>
 #include <ui/background.hpp>
 
+#include <cleaners/cleaner_engine.hpp>
 #include <collectors/startup_collector.hpp>
 #include <scanner/space_survey.hpp>
 #include <commands/command_catalog.hpp>
@@ -227,6 +228,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     tabs_ = new QTabWidget(central);
     tabs_->addTab(splitter, QStringLiteral("Analise"));
     tabs_->addTab(build_space_tab(), QStringLiteral("Onde o espaco esta"));
+    tabs_->addTab(build_cleaners_tab(), QStringLiteral("Limpezas"));
     tabs_->addTab(growth_page, QStringLiteral("O que cresceu"));
     tabs_->addTab(cloud_page, QStringLiteral("Nuvem"));
     tabs_->addTab(build_windows_tab(), QStringLiteral("Limpezas do Windows"));
@@ -415,6 +417,348 @@ void MainWindow::manage_startup() {
     }
 }
 
+namespace {
+
+QColor class_color(core::ContentClass value) {
+    switch (value) {
+    case core::ContentClass::SafeToClean:
+        return QColor(0x2E, 0x7D, 0x32);
+    case core::ContentClass::CleanWithConsequence:
+        return QColor(0xE6, 0x8A, 0x00);
+    case core::ContentClass::Protected:
+        return QColor(0xC0, 0x39, 0x2B);
+    case core::ContentClass::NeedsReview:
+        break;
+    }
+    return QColor(0x77, 0x77, 0x77);
+}
+
+/// Tudo que o limpador precisa dizer antes de alguem aprovar.
+QString describe_cleaner(const core::CleanerSpec& spec, const core::CleanerPreview& preview) {
+    QString text = QStringLiteral("<p><b>%1</b><br>%2</p>")
+                       .arg(QString::fromStdString(spec.display_name).toHtmlEscaped(),
+                            QString::fromStdString(spec.description).toHtmlEscaped());
+
+    text += QStringLiteral("<p><b>Sai:</b> %1 arquivos, %2</p>")
+                .arg(preview.file_count)
+                .arg(QString::fromStdString(core::format_bytes(preview.bytes)));
+
+    text += QStringLiteral("<p><b>Fica:</b> %1</p>")
+                .arg(QString::fromStdString(spec.preserved_description).toHtmlEscaped());
+
+    text += QStringLiteral("<p><b>Depois disso:</b> %1</p>")
+                .arg(QString::fromStdString(spec.consequence).toHtmlEscaped());
+
+    text += QStringLiteral("<p style='color:gray'>Confianca da identificacao: %1%")
+                .arg(static_cast<int>(spec.confidence * 100));
+    if (spec.needs_app_closed) {
+        text += QStringLiteral(" &middot; feche o programa antes para liberar mais");
+    }
+    if (spec.needs_admin) {
+        text += QStringLiteral(" &middot; precisa de administrador");
+    }
+    if (!spec.regenerates_itself) {
+        text += QStringLiteral(" &middot; nao volta sozinho");
+    }
+    text += QStringLiteral("</p>");
+
+    text += QStringLiteral("<p style='color:gray'>Caminhos alcancados:<br>");
+    for (const auto& root : spec.allowed_roots) {
+        text += QStringLiteral("%1<br>").arg(QString::fromStdString(root).toHtmlEscaped());
+    }
+    text += QStringLiteral("</p>");
+
+    if (!preview.rejected.empty()) {
+        text += QStringLiteral("<p style='color:#E68A00'>Recusados:<br>");
+        for (const auto& reason : preview.rejected) {
+            text += QStringLiteral("%1<br>").arg(QString::fromStdString(reason).toHtmlEscaped());
+        }
+        text += QStringLiteral("</p>");
+    }
+
+    return text;
+}
+
+}
+
+QWidget* MainWindow::build_cleaners_tab() {
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+
+    auto* intro = new QLabel(
+        QStringLiteral(
+            "<p>Cada limpeza abaixo tem caminhos fixos, revisados e testados. Nenhuma recebe "
+            "pasta digitada nem apaga fora da propria area.</p>"),
+        page);
+    intro->setWordWrap(true);
+    layout->addWidget(intro);
+
+    cleaners_list_ = new QTreeWidget(page);
+    cleaners_list_->setColumnCount(4);
+    cleaners_list_->setHeaderLabels({QStringLiteral("Limpeza"), QStringLiteral("Programa"),
+                                     QStringLiteral("Libera"), QStringLiteral("Classe")});
+    cleaners_list_->setColumnWidth(0, 320);
+    cleaners_list_->setColumnWidth(1, 150);
+    cleaners_list_->setColumnWidth(2, 100);
+    connect(cleaners_list_, &QTreeWidget::currentItemChanged, this, [this] {
+        const auto* item = cleaners_list_->currentItem();
+        if (item != nullptr) {
+            cleaners_output_->setHtml(item->data(0, Qt::UserRole + 1).toString());
+        }
+    });
+    layout->addWidget(cleaners_list_, 1);
+
+    cleaners_output_ = new QTextBrowser(page);
+    cleaners_output_->setMaximumHeight(230);
+    layout->addWidget(cleaners_output_);
+
+    auto* actions = new QHBoxLayout;
+
+    cleaners_preview_button_ = new QPushButton(QStringLiteral("Medir o que sairia"), page);
+    connect(cleaners_preview_button_, &QPushButton::clicked, this, &MainWindow::preview_cleaners);
+    actions->addWidget(cleaners_preview_button_);
+
+    cleaners_safe_button_ = new QPushButton(QStringLiteral("Marcar so os seguros"), page);
+    connect(cleaners_safe_button_, &QPushButton::clicked, this, [this] {
+        // Amarelo nunca entra numa selecao em massa: cada um tem uma
+        // consequencia propria, e aprovar em bloco esconde justamente isso.
+        for (int index = 0; index < cleaners_list_->topLevelItemCount(); ++index) {
+            auto* item = cleaners_list_->topLevelItem(index);
+            const auto content_class =
+                static_cast<core::ContentClass>(item->data(0, Qt::UserRole + 2).toInt());
+            item->setCheckState(0, content_class == core::ContentClass::SafeToClean
+                                       ? Qt::Checked
+                                       : Qt::Unchecked);
+        }
+    });
+    actions->addWidget(cleaners_safe_button_);
+
+    cleaners_run_button_ = new QPushButton(QStringLiteral("Limpar os marcados"), page);
+    connect(cleaners_run_button_, &QPushButton::clicked, this, &MainWindow::run_selected_cleaners);
+    actions->addWidget(cleaners_run_button_);
+
+    layout->addLayout(actions);
+    return page;
+}
+
+void MainWindow::preview_cleaners() {
+    if (busy_) {
+        return;
+    }
+    busy_ = true;
+
+    cleaners_preview_button_->setEnabled(false);
+    cleaners_output_->setHtml(QStringLiteral("<p>Medindo...</p>"));
+
+    using Measured = std::vector<std::pair<core::CleanerSpec, core::CleanerPreview>>;
+
+    run_in_background<Measured>(
+        this,
+        [] {
+            const cleaners::CleanerEngine engine{
+                collectors::build_protected_paths(collectors::collect_system_paths())};
+
+            Measured measured;
+            for (auto& spec : cleaners::available_cleaners()) {
+                auto preview = engine.preview(spec);
+                measured.emplace_back(std::move(spec), std::move(preview));
+            }
+            return measured;
+        },
+        [this](Measured measured) {
+            cleaners_list_->clear();
+
+            std::uint64_t safe_total = 0;
+            std::uint64_t consequence_total = 0;
+
+            for (const auto& [spec, preview] : measured) {
+                auto* item = new QTreeWidgetItem(cleaners_list_);
+                item->setText(0, QString::fromStdString(spec.display_name));
+                item->setText(1, QString::fromStdString(spec.application));
+                item->setText(2, QString::fromStdString(core::format_bytes(preview.bytes)));
+                item->setText(3, QString::fromStdString(core::to_string(spec.content_class)));
+                item->setForeground(3, class_color(spec.content_class));
+                item->setCheckState(0, Qt::Unchecked);
+
+                item->setData(0, Qt::UserRole, QString::fromStdString(spec.id));
+                item->setData(0, Qt::UserRole + 1, describe_cleaner(spec, preview));
+                item->setData(0, Qt::UserRole + 2, static_cast<int>(spec.content_class));
+
+                if (spec.content_class == core::ContentClass::SafeToClean) {
+                    safe_total += preview.bytes;
+                } else {
+                    consequence_total += preview.bytes;
+                }
+            }
+
+            cleaners_output_->setHtml(
+                QStringLiteral(
+                    "<p><b>%1 limpezas disponiveis.</b></p>"
+                    "<p><span style='color:#2E7D32'>%2 seguros para limpar</span> &middot; "
+                    "<span style='color:#E68A00'>%3 com consequencia declarada</span></p>"
+                    "<p>Clique numa linha para ver o que sai, o que fica e o que muda depois.</p>")
+                    .arg(measured.size())
+                    .arg(QString::fromStdString(core::format_bytes(safe_total)),
+                         QString::fromStdString(core::format_bytes(consequence_total))));
+
+            cleaners_preview_button_->setEnabled(true);
+            busy_ = false;
+        });
+}
+
+void MainWindow::run_selected_cleaners() {
+    if (busy_) {
+        return;
+    }
+
+    std::vector<std::string> chosen;
+    QString summary;
+    bool has_consequence = false;
+
+    for (int index = 0; index < cleaners_list_->topLevelItemCount(); ++index) {
+        const auto* item = cleaners_list_->topLevelItem(index);
+        if (item->checkState(0) != Qt::Checked) {
+            continue;
+        }
+
+        chosen.push_back(item->data(0, Qt::UserRole).toString().toStdString());
+        summary += QStringLiteral("<li>%1 — %2</li>")
+                       .arg(item->text(0).toHtmlEscaped(), item->text(2));
+
+        if (static_cast<core::ContentClass>(item->data(0, Qt::UserRole + 2).toInt()) !=
+            core::ContentClass::SafeToClean) {
+            has_consequence = true;
+        }
+    }
+
+    if (chosen.empty()) {
+        QMessageBox::information(this, QStringLiteral("Limpeza"),
+                                 QStringLiteral("Nenhuma limpeza esta marcada."));
+        return;
+    }
+
+    QMessageBox confirmation(this);
+    confirmation.setWindowTitle(QStringLiteral("Confirmar limpeza"));
+    confirmation.setTextFormat(Qt::RichText);
+
+    QString text = QStringLiteral("<p>Executar estas limpezas?</p><ul>%1</ul>").arg(summary);
+    if (has_consequence) {
+        // Amarelo marcado a mao ainda ganha um aviso proprio na confirmacao: o
+        // usuario pode ter marcado sem abrir o detalhe.
+        text += QStringLiteral(
+            "<p style='color:#E68A00'><b>Ha limpezas com consequencia na lista.</b> Abra cada "
+            "uma antes de aprovar para ler o que muda depois.</p>");
+    }
+    text += QStringLiteral(
+        "<p>Os arquivos sao apagados de vez. O que cada limpeza preserva esta no detalhe dela.</p>");
+    confirmation.setText(text);
+
+    confirmation.addButton(QStringLiteral("Limpar"), QMessageBox::AcceptRole);
+    confirmation.addButton(QStringLiteral("Cancelar"), QMessageBox::RejectRole);
+    confirmation.setDefaultButton(qobject_cast<QPushButton*>(confirmation.buttons().last()));
+    confirmation.exec();
+
+    if (confirmation.buttonRole(confirmation.clickedButton()) != QMessageBox::AcceptRole) {
+        return;
+    }
+
+    busy_ = true;
+    cleaners_run_button_->setEnabled(false);
+    cleaners_output_->setHtml(QStringLiteral("<p>Limpando...</p>"));
+
+    run_in_background<std::vector<core::CleanerOutcome>>(
+        this,
+        [chosen] {
+            const cleaners::CleanerEngine engine{
+                collectors::build_protected_paths(collectors::collect_system_paths())};
+
+            std::vector<core::CleanerOutcome> outcomes;
+            for (const auto& spec : cleaners::available_cleaners()) {
+                if (std::find(chosen.begin(), chosen.end(), spec.id) == chosen.end()) {
+                    continue;
+                }
+
+                auto outcome = engine.execute(spec);
+
+                monitor::ActionLog log{action_database()};
+                if (log.ok()) {
+                    log.record(monitor::ActionRecord{
+                        .kind = monitor::ActionKind::Deleted,
+                        .reason = spec.display_name + " (regra v" +
+                                  std::to_string(spec.rule_version) + ")",
+                        .target = spec.allowed_roots.front(),
+                        .item_count = outcome.removed_count,
+                        .bytes = outcome.bytes,
+                        .skipped_count = outcome.skipped_count + outcome.failed_count,
+                        .reversible = false,
+                    });
+                }
+
+                outcomes.push_back(std::move(outcome));
+            }
+            return outcomes;
+        },
+        [this](std::vector<core::CleanerOutcome> outcomes) {
+            std::size_t removed = 0;
+            std::size_t skipped = 0;
+            std::size_t failed = 0;
+            std::uint64_t estimated = 0;
+            std::int64_t recovered = 0;
+
+            QString details;
+            for (const auto& outcome : outcomes) {
+                removed += outcome.removed_count;
+                skipped += outcome.skipped_count;
+                failed += outcome.failed_count;
+                estimated += outcome.bytes;
+                recovered += outcome.free_space_delta;
+
+                for (const auto& reason : outcome.reasons) {
+                    details += QStringLiteral("<li>%1</li>")
+                                   .arg(QString::fromStdString(reason).toHtmlEscaped());
+                }
+            }
+
+            // Estimado e recuperado lado a lado. Sao numeros diferentes de
+            // proposito: outros programas escrevem enquanto a limpeza roda, e
+            // mostrar so a soma dos arquivos removidos prometeria uma exatidao
+            // que o disco nao tem.
+            QString body =
+                QStringLiteral(
+                    "<h3>Limpeza concluida</h3>"
+                    "<table cellspacing='0' cellpadding='4'>"
+                    "<tr><td>Soma dos arquivos removidos</td><td><b>%1</b></td></tr>"
+                    "<tr><td>Espaco livre que apareceu no disco</td><td><b>%2</b></td></tr>"
+                    "<tr><td>Arquivos removidos</td><td>%3</td></tr>"
+                    "<tr><td>Arquivos ignorados</td><td>%4</td></tr>"
+                    "<tr><td>Arquivos com erro</td><td>%5</td></tr>"
+                    "</table>")
+                    .arg(QString::fromStdString(core::format_bytes(estimated)),
+                         QString::fromStdString(core::format_bytes(
+                             recovered > 0 ? static_cast<std::uint64_t>(recovered) : 0)))
+                    .arg(removed)
+                    .arg(skipped)
+                    .arg(failed);
+
+            if (!details.isEmpty()) {
+                body += QStringLiteral("<p><b>Motivos:</b></p><ul>%1</ul>").arg(details);
+            }
+
+            if (recovered < static_cast<std::int64_t>(estimated)) {
+                body += QStringLiteral(
+                    "<p style='color:gray'>O espaco livre pode aparecer menor que a soma dos "
+                    "arquivos: outros programas escrevem no disco enquanto a limpeza roda.</p>");
+            }
+
+            cleaners_output_->setHtml(body);
+            cleaners_run_button_->setEnabled(true);
+            busy_ = false;
+
+            show_history();
+            preview_cleaners();
+        });
+}
+
 QWidget* MainWindow::build_space_tab() {
     auto* page = new QWidget(this);
     auto* layout = new QVBoxLayout(page);
@@ -482,20 +826,6 @@ void MainWindow::cancel_survey() {
 }
 
 namespace {
-
-QColor class_color(core::ContentClass value) {
-    switch (value) {
-    case core::ContentClass::SafeToClean:
-        return QColor(0x2E, 0x7D, 0x32);
-    case core::ContentClass::CleanWithConsequence:
-        return QColor(0xE6, 0x8A, 0x00);
-    case core::ContentClass::Protected:
-        return QColor(0xC0, 0x39, 0x2B);
-    case core::ContentClass::NeedsReview:
-        break;
-    }
-    return QColor(0x77, 0x77, 0x77);
-}
 
 /// Monta a linha da arvore. Recursiva porque a arvore tambem e.
 QTreeWidgetItem* build_tree_item(const core::SpaceNode& node) {

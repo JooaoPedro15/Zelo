@@ -25,6 +25,7 @@
     collectors/disk_collector_test.cpp
     collectors/wmi_test.cpp
     commands/official_commands_test.cpp
+    cleaners/cleaner_engine_test.cpp
     commands/installer_cache_test.cpp
     storage/json_codec_test.cpp
     storage/history_store_test.cpp
@@ -47,6 +48,7 @@ target_link_libraries(cleaner_tests PRIVATE
     cleaner_collectors
     cleaner_scanner
     cleaner_commands
+    cleaner_cleaners
     cleaner_storage
     cleaner_ui
     cleaner_monitor
